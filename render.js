@@ -1,17 +1,21 @@
-import { rectStruct } from "./structs.js";
+import { rectStruct, circleStruct } from "./structs.js";
+import { unitCirclePointsWGSL } from "./geometry.js";
 
-export const renderShaderCode = /* wgsl */ `
+export const renderShaderCode = (polysPerCircle) => /* wgsl */ `
 ${rectStruct.code}
+${circleStruct.code}
 
 struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) color : vec4f
 }
 
-@group(0) @binding(0) var<storage, read> rects : array<Rect>; 
+@group(0) @binding(0) var<storage, read> rects : array<Rect>;
+@group(0) @binding(1) var<storage, read> circles : array<Circle>; 
 
-@vertex fn drawRects(@builtin(vertex_index) vertexIdx : u32, 
+@vertex fn drawRect(@builtin(vertex_index) vertexIdx : u32, 
                     @builtin(instance_index) instanceIdx : u32) -> VertexOutput {
+    _ = circles[0].radius;
     let rect = rects[instanceIdx];
     let points = array(
         rect.topLeft,
@@ -22,6 +26,22 @@ struct VertexOutput {
     return VertexOutput(
         vec4f(points[vertexIdx], 1, 1),
         vec4f(1, 1, 0, 1)
+    );
+}
+
+const UNIT_CIRCLE_POINTS = ${unitCirclePointsWGSL(polysPerCircle)}
+
+@vertex fn drawCircle(@builtin(vertex_index) vertexIdx : u32, 
+                    @builtin(instance_index) instanceIdx : u32) -> VertexOutput {
+    _ = rects[0].topLeft;
+    let circle = circles[instanceIdx];
+    let r = select(0., circle.radius, (vertexIdx & 1) == 0); // Alternate between edges and center
+
+    let offset = r * UNIT_CIRCLE_POINTS[vertexIdx/2];
+
+    return VertexOutput(
+        vec4f(circle.center + offset, 0, 1.),
+        select(vec4(), circle.color, (vertexIdx & 1) == 0)
     );
 }
 

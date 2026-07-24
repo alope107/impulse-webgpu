@@ -2,7 +2,11 @@
 const defaults = {
     rectCount: 100,
     minRectWidth: .05,
-    maxRectWidth: .2
+    maxRectWidth: .2,
+    polysPerCircle: 20,
+    circleCount: 100,
+    minCircleRadius: .05,
+    maxCircleRadius: .2,
 };
 
 // does not currently validate params!

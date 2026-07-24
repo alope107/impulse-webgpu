@@ -2,7 +2,7 @@ import { computeShaderCode } from "./compute.js";
 import { configFromQueryParams } from "./config.js";
 import { renderShaderCode } from "./render.js";
 import { startResizeObservation } from "./resize.js";
-import { rectStruct, uniformsStruct } from "./structs.js";
+import { rectStruct, circleStruct, uniformsStruct } from "./structs.js";
 
 let pointerLoc = [0, 0];
 let pointerHeldNow = false;
@@ -55,16 +55,24 @@ const main = async () => {
             entryPoint: "moveRects"
         }
     });
+    const moveCirclesPipeline = device.createComputePipeline({
+        label: "moveCircles pipeline",
+        layout: "auto",
+        compute: {
+            module: computeModule,
+            entryPoint: "moveCircles"
+        }
+    });
 
     const renderModule = device.createShaderModule({
         label: "render module",
-        code: renderShaderCode
+        code: renderShaderCode(c.polysPerCircle)
     });
     const rectRenderPipeline = device.createRenderPipeline({
         label: "rect render pipeline",
         layout: "auto",
         vertex: {
-            entryPoint: "drawRects",
+            entryPoint: "drawRect",
             module: renderModule
         },
         fragment:{
@@ -76,12 +84,38 @@ const main = async () => {
             topology: "triangle-strip"
         }
     });
-    const renderPassDescriptor = {
-        label: "render pass descriptor",
+    // TODO: less copypasta
+    const circleRenderPipeline = device.createRenderPipeline({
+        label: "circle render pipeline",
+        layout: "auto",
+        vertex: {
+            entryPoint: "drawCircle",
+            module: renderModule
+        },
+        fragment:{
+            entryPoint: "solidColor",
+            module: renderModule,
+            targets: [{format: renderFormat}]
+        },
+        primitive: {
+            topology: "triangle-strip"
+        }
+    });
+    const baseRenderPassDescriptor = {
+        label: "base render pass descriptor",
         colorAttachments: [
             {
                 clearValue: [0, 0, 0, 1],
                 loadOp: "clear",
+                storeOp: "store"
+            }
+        ]
+    };
+    const layeredRenderPassDescriptor = {
+        label: "layered render pass descriptor",
+        colorAttachments: [
+            {
+                loadOp: "load",
                 storeOp: "store"
             }
         ]
@@ -98,6 +132,20 @@ const main = async () => {
                GPUBufferUsage.VERTEX
     });
     device.queue.writeBuffer(rectBuffer, 0, rects.data);
+
+    const circles = circleStruct.createFilledArray(
+        circleStruct.randJSCircles(c.circleCount, c.minCircleRadius, c.maxCircleRadius)
+    );
+    // TODO: double buffer?
+    const circleBuffer = device.createBuffer({
+        label: "circleBuffer",
+        size: circles.data.byteLength,
+        usage: GPUBufferUsage.STORAGE |
+               GPUBufferUsage.COPY_DST |
+            //    GPUBufferUsage.COPY_SRC | // used for debugging
+               GPUBufferUsage.VERTEX
+    });
+    device.queue.writeBuffer(circleBuffer, 0, circles.data);
 
 
     let uniform = uniformsStruct.createFilled({
@@ -116,16 +164,35 @@ const main = async () => {
         label: "moveRectsBindGroup",
         layout: moveRectsPipeline.getBindGroupLayout(0),
         entries: [
-            {binding: 0, resource: rectBuffer},
-            {binding: 1, resource: uniformBuffer},
+            {binding: 0, resource: uniformBuffer},
+            {binding: 1, resource: rectBuffer},
+            {binding: 2, resource: circleBuffer},
         ]
     });
-
     const renderRectsBindGroup = device.createBindGroup({
         label: "renderRectsBindGroup",
         layout: rectRenderPipeline.getBindGroupLayout(0),
         entries: [
             {binding: 0, resource: rectBuffer},
+            {binding: 1, resource: circleBuffer},
+        ]
+    });
+
+    const moveCirclesBindGroup = device.createBindGroup({
+        label: "moveCirclesBindGroup",
+        layout: moveCirclesPipeline.getBindGroupLayout(0),
+        entries: [
+            {binding: 0, resource: uniformBuffer},
+            {binding: 1, resource: rectBuffer},
+            {binding: 2, resource: circleBuffer},
+        ]
+    });
+    const renderCirclesBindGroup = device.createBindGroup({
+        label: "renderCirclesBindGroup",
+        layout: circleRenderPipeline.getBindGroupLayout(0),
+        entries: [
+            {binding: 0, resource: rectBuffer},
+            {binding: 1, resource: circleBuffer},
         ]
     });
 
@@ -151,12 +218,25 @@ const main = async () => {
         moveRectsPass.dispatchWorkgroups(Math.ceil(rects.count/64), Math.ceil(rects.count/64), 1);
         moveRectsPass.end();
 
-        renderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
-        const rectRenderPass = encoder.beginRenderPass(renderPassDescriptor);
+        let moveCirclesPass = encoder.beginComputePass();
+        moveCirclesPass.setPipeline(moveCirclesPipeline);
+        moveCirclesPass.setBindGroup(0, moveCirclesBindGroup);
+        moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
+        moveCirclesPass.end();
+
+        baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
+        const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
         rectRenderPass.setPipeline(rectRenderPipeline);
         rectRenderPass.setBindGroup(0, renderRectsBindGroup);
         rectRenderPass.draw(4, rects.count); // Rectangle needs 4 vertices
         rectRenderPass.end();
+
+        layeredRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
+        const circleRenderPass = encoder.beginRenderPass(layeredRenderPassDescriptor);
+        circleRenderPass.setPipeline(circleRenderPipeline);
+        circleRenderPass.setBindGroup(0, renderCirclesBindGroup);
+        circleRenderPass.draw(c.polysPerCircle*2 + 1, circles.count); 
+        circleRenderPass.end();
 
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
