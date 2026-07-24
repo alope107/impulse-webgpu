@@ -3,26 +3,34 @@ import { configFromQueryParams } from "./config.js";
 import { renderShaderCode } from "./render.js";
 import { startResizeObservation } from "./resize.js";
 import { rectStruct, circleStruct, uniformsStruct } from "./structs.js";
+import { createResources } from "./scaffold.js";
 
 let pointerLoc = [0, 0];
 let pointerHeldNow = false;
 let pointerHeldLastFrame = false;
 
 const main = async () => {
-
-    // TODO check for max supported first
-    const device = await (await navigator.gpu?.requestAdapter( {
-        powerPreference: "high-performance",
-    }))?.requestDevice();
-
-    if(!device) {        
-        const errorMessage = document.body.appendChild(document.createElement("span"));
-        errorMessage.innerText = "No WebGPU support :( "
-        console.error("No WebGPU support :(");
-        return;
-    }
-
     const c = configFromQueryParams();
+
+    const spec = {
+        adapter: {
+            powerPreference: "high-performance"
+        },
+        device: {},
+    };
+
+    let adapter, device;
+    try {
+        ({ adapter, device } = await createResources(spec));
+    } catch (e) {
+        if(e.message === "No WebGPUSupport") {
+            const errorMessage = document.body.appendChild(document.createElement("span"));
+            errorMessage.innerText = "No WebGPU support :( "
+            console.error("No WebGPU support :(");
+            return;
+        }
+        throw e;
+    }
 
     const renderTarget = document.body.appendChild(document.createElement("canvas"));
     renderTarget.id = "renderTarget";
