@@ -17,11 +17,12 @@ const main = async () => {
             powerPreference: "high-performance"
         },
         device: {},
+        renderTarget: {}
     };
 
-    let adapter, device;
+    let adapter, device, renderTarget, renderFormat, renderTargetCtx;
     try {
-        ({ adapter, device } = await createResources(spec));
+        ({ adapter, device, renderTarget, renderFormat, renderTargetCtx } = await createResources(spec, true));
     } catch (e) {
         if(e.message === "No WebGPUSupport") {
             const errorMessage = document.body.appendChild(document.createElement("span"));
@@ -31,25 +32,6 @@ const main = async () => {
         }
         throw e;
     }
-
-    const renderTarget = document.body.appendChild(document.createElement("canvas"));
-    renderTarget.id = "renderTarget";
-
-    startResizeObservation(renderTarget,  device.limits.maxTextureDimension2D);
-
-    // These errors are automatically surfaced in the chrome terminal,
-    // but need to be explicitly listened for on webkit
-    device.addEventListener("uncapturederror", (e) => {
-        console.error("Uncaptured error: ", e.error.message);
-    });
-
-    const renderFormat = navigator.gpu.getPreferredCanvasFormat();
-    const ctx = renderTarget.getContext("webgpu");
-    ctx.configure( {
-        device,
-        format: renderFormat,
-        alphaMode: "premultiplied"
-    });
 
     const computeModule = device.createShaderModule({
         label: "compute shader module",
@@ -232,14 +214,14 @@ const main = async () => {
         moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
         moveCirclesPass.end();
 
-        baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
+        baseRenderPassDescriptor.colorAttachments[0].view = renderTargetCtx.getCurrentTexture().createView();
         const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
         rectRenderPass.setPipeline(rectRenderPipeline);
         rectRenderPass.setBindGroup(0, renderRectsBindGroup);
         rectRenderPass.draw(4, rects.count); // Rectangle needs 4 vertices
         rectRenderPass.end();
 
-        layeredRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
+        layeredRenderPassDescriptor.colorAttachments[0].view = renderTargetCtx.getCurrentTexture().createView();
         const circleRenderPass = encoder.beginRenderPass(layeredRenderPassDescriptor);
         circleRenderPass.setPipeline(circleRenderPipeline);
         circleRenderPass.setBindGroup(0, renderCirclesBindGroup);

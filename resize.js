@@ -1,7 +1,8 @@
 // Ripped pretty much exactly from https://webgpufundamentals.org/webgpu/lessons/webgpu-fundamentals.html
 
-export const startResizeObservation = (canvas, maxTextureDimension2D) => {
-const observer = new ResizeObserver(entries => {
+export const startResizeObservation = ({canvas, device}) => {
+    const maxTextureDimension2D = device.limits.maxTextureDimension2D;
+    const observer = new ResizeObserver(entries => {
         for (const entry of entries) {
             const canvas = entry.target;
             const width = entry.contentBoxSize[0].inlineSize;
