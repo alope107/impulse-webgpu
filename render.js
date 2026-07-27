@@ -25,7 +25,7 @@ struct VertexOutput {
     );
     return VertexOutput(
         vec4f(points[vertexIdx], 1, 1),
-        vec4f(1, 1, 0, 1)
+        select(vec4f(1, 1, 0, 1), vec4f(1, 0, 0, 1), rect.overlaps > 0)
     );
 }
 

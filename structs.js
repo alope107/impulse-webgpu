@@ -9,11 +9,14 @@ export const rectStruct = (() => {
         struct Rect {
             topLeft: vec2f, // 8 bytes
             bottomRight: vec2f, // 8 bytes
-            velocity: vec2f // 8 bytes
-        }  // total 24 bytes
+            velocity: vec2f, // 8 bytes
+            overlaps: u32 // 4 bytes
+            // pad 4 bytes
+        }  // total 32 bytes
     `
-    const byteCount = 24;
+    const byteCount = 32;
     const floatCount = byteCount / 4;
+    const uint32Count = byteCount / 4;
     const createEmptyArray = (rectCount) => {
         const data = new ArrayBuffer(byteCount * rectCount);
         return {
@@ -21,7 +24,8 @@ export const rectStruct = (() => {
             views: {
                 topLeftView: new Float32Array(data, 0),
                 bottomRightView: new Float32Array(data, 8),
-                velocityView: new Float32Array(data, 16)
+                velocityView: new Float32Array(data, 16),
+                overlapsView: new Uint32Array(data, 24),
             },
             count: rectCount
         };
@@ -33,6 +37,7 @@ export const rectStruct = (() => {
             topLeftView.set(topLeft, i*floatCount);
             bottomRightView.set(bottomRight, i*floatCount);
             velocityView.set(velocity, i*floatCount);
+            // overlaps and padding automatically set to 0
         });
         return data;
     };

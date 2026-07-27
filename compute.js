@@ -31,6 +31,21 @@ ${uniformsStruct.code}
         let rect = &rects[id];
         rect.topLeft += rect.velocity;
         rect.bottomRight += rect.velocity;
+
+
+        // TODO: broad phase collision etc. etc.
+        rect.overlaps = 0;
+        for(var i = 0u; i < arrayLength(&rects); i++) {
+            let other = &rects[i];
+            rect.overlaps |= select(0u, 1u, overlaps(rect, other) && id != i);
+        }
+}
+
+fn overlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_write>) -> bool {
+    return !(r1.bottomRight.x < r2.topLeft.x) &&
+           !(r2.bottomRight.x < r1.topLeft.x) &&
+           !(r1.bottomRight.y < r2.topLeft.y) &&
+           !(r2.bottomRight.y < r1.topLeft.y);
 }
 
 // TODO: better workgroup size UPDATE THE GLOBAL INDEX CALC IF CHANGED
