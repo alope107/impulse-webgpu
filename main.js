@@ -3,35 +3,45 @@ import { configFromQueryParams } from "./config.js";
 import { renderShaderCode } from "./render.js";
 import { startResizeObservation } from "./resize.js";
 import { rectStruct, circleStruct, uniformsStruct } from "./structs.js";
-import { createResources } from "./scaffold.js";
 
 let pointerLoc = [0, 0];
 let pointerHeldNow = false;
 let pointerHeldLastFrame = false;
 
 const main = async () => {
+
+    // TODO check for max supported first
+    const device = await (await navigator.gpu?.requestAdapter( {
+        powerPreference: "high-performance",
+    }))?.requestDevice();
+
+    if(!device) {        
+        const errorMessage = document.body.appendChild(document.createElement("span"));
+        errorMessage.innerText = "No WebGPU support :( "
+        console.error("No WebGPU support :(");
+        return;
+    }
+
     const c = configFromQueryParams();
 
-    const spec = {
-        adapter: {
-            powerPreference: "high-performance"
-        },
-        device: {},
-        renderTarget: {}
-    };
+    const renderTarget = document.body.appendChild(document.createElement("canvas"));
+    renderTarget.id = "renderTarget";
 
-    let adapter, device, renderTarget, renderFormat, renderTargetCtx;
-    try {
-        ({ adapter, device, renderTarget, renderFormat, renderTargetCtx } = await createResources(spec, true));
-    } catch (e) {
-        if(e.message === "No WebGPUSupport") {
-            const errorMessage = document.body.appendChild(document.createElement("span"));
-            errorMessage.innerText = "No WebGPU support :( "
-            console.error("No WebGPU support :(");
-            return;
-        }
-        throw e;
-    }
+    startResizeObservation(renderTarget,  device.limits.maxTextureDimension2D);
+
+    // These errors are automatically surfaced in the chrome terminal,
+    // but need to be explicitly listened for on webkit
+    device.addEventListener("uncapturederror", (e) => {
+        console.error("Uncaptured error: ", e.error.message);
+    });
+
+    const renderFormat = navigator.gpu.getPreferredCanvasFormat();
+    const ctx = renderTarget.getContext("webgpu");
+    ctx.configure( {
+        device,
+        format: renderFormat,
+        alphaMode: "premultiplied"
+    });
 
     const computeModule = device.createShaderModule({
         label: "compute shader module",
@@ -214,14 +224,14 @@ const main = async () => {
         moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
         moveCirclesPass.end();
 
-        baseRenderPassDescriptor.colorAttachments[0].view = renderTargetCtx.getCurrentTexture().createView();
+        baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
         const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
         rectRenderPass.setPipeline(rectRenderPipeline);
         rectRenderPass.setBindGroup(0, renderRectsBindGroup);
         rectRenderPass.draw(4, rects.count); // Rectangle needs 4 vertices
         rectRenderPass.end();
 
-        layeredRenderPassDescriptor.colorAttachments[0].view = renderTargetCtx.getCurrentTexture().createView();
+        layeredRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
         const circleRenderPass = encoder.beginRenderPass(layeredRenderPassDescriptor);
         circleRenderPass.setPipeline(circleRenderPipeline);
         circleRenderPass.setBindGroup(0, renderCirclesBindGroup);
