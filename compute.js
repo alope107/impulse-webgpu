@@ -38,6 +38,11 @@ ${uniformsStruct.code}
             let other = &rects[i];
             rect.overlaps |= select(0u, 1u, rectOverlaps(rect, other) && id != i);
         }
+
+        for(var i = 0u; i < arrayLength(&circles); i++) {
+            let circle = &circles[i];
+            rect.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
+        }
 }
 
 fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_write>) -> bool {
@@ -70,11 +75,46 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             let other = &circles[i];
             circle.overlaps |= select(0u, 1u, circleOverlaps(circle, other) && id != i);
         }
+
+        for(var i = 0u; i < arrayLength(&rects); i++) {
+            let rect = &rects[i];
+            circle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
+        }
 }
 
 fn circleOverlaps(c1 : ptr<storage, Circle, read_write>, c2: ptr<storage, Circle, read_write>) -> bool {
     let delta = c1.center - c2.center;
     let squaredDist = dot(delta, delta);
     return squaredDist < pow((c1.radius + c2.radius), 2);
+}
+
+// Adapted from https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
+fn rectCircleOverlaps(r : ptr<storage, Rect, read_write>, c: ptr<storage, Circle, read_write>) -> bool {
+    // TODO: cache rect center amnd dims?
+    let rHalfDims = abs(vec2f(
+        (r.bottomRight.x - r.topLeft.x) /2,
+        (r.topLeft.y - r.bottomRight.y) /2
+    ));
+    let rCenter = vec2f(
+        r.topLeft.x + rHalfDims.x,
+        r.bottomRight.y - rHalfDims.y
+    );
+
+    let delta = abs(c.center - rCenter);
+
+    if(delta.x > rHalfDims.x + c.radius ||
+       delta.y >  rHalfDims.y + c.radius) {
+        return false;
+    }
+
+    if(delta.x < rHalfDims.x ||
+       delta.y <  rHalfDims.y) {
+        return true;
+    }
+
+    let corner = delta - rHalfDims;
+    let squaredCorner = dot(corner, corner);
+
+    return squaredCorner < pow(c.radius, 2);
 }
 `;
