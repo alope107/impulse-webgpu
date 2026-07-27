@@ -8,10 +8,11 @@ export const rectStruct = (() => {
     const code = /* wgsl */`
         struct Rect {
             topLeft: vec2f, // 8 bytes
-            bottomRight: vec2f // 8 bytes
-        }  // total 16 bytes
+            bottomRight: vec2f, // 8 bytes
+            velocity: vec2f // 8 bytes
+        }  // total 24 bytes
     `
-    const byteCount = 16;
+    const byteCount = 24;
     const floatCount = byteCount / 4;
     const createEmptyArray = (rectCount) => {
         const data = new ArrayBuffer(byteCount * rectCount);
@@ -20,27 +21,31 @@ export const rectStruct = (() => {
             views: {
                 topLeftView: new Float32Array(data, 0),
                 bottomRightView: new Float32Array(data, 8),
+                velocityView: new Float32Array(data, 16)
             },
             count: rectCount
         };
     };
     const createFilledArray = (rectData) => {
         const data = createEmptyArray(rectData.length);
-        const {topLeftView, bottomRightView} = data.views;
-        rectData.forEach(({topLeft, bottomRight}, i) => {
+        const {topLeftView, bottomRightView, velocityView} = data.views;
+        rectData.forEach(({topLeft, bottomRight, velocity}, i) => {
             topLeftView.set(topLeft, i*floatCount);
             bottomRightView.set(bottomRight, i*floatCount);
+            velocityView.set(velocity, i*floatCount);
         });
         return data;
     };
-    const randomJSRects = (count, minWidth, maxWidth) => {
+    const randomJSRects = (count, minWidth, maxWidth, maxVelComp) => {
         const rects = [];
         for(let i = 0; i < count; i++) {
             const topLeft = [randClip(), randClip()];
             const w = randRange(minWidth, maxWidth), h = randRange(minWidth, maxWidth);
+            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)]
             rects.push({
                 topLeft,
-                bottomRight: [Math.min(topLeft[0] + w, 1), Math.min(topLeft[1] + h, 1)]
+                bottomRight: [Math.min(topLeft[0] + w, 1), Math.min(topLeft[1] + h, 1)],
+                velocity
            });
          }
         return rects;

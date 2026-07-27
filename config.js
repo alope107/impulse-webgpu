@@ -7,6 +7,7 @@ const defaults = {
     circleCount: 100,
     minCircleRadius: .05,
     maxCircleRadius: .2,
+    maxRandVelComp: .01,
 };
 
 // does not currently validate params!

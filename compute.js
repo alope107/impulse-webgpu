@@ -27,6 +27,10 @@ ${uniformsStruct.code}
         _ = circles[0].radius;
         _ = rects[0].topLeft;
         _ = uniforms.pointerHeld;
+
+        let rect = &rects[id];
+        rect.topLeft += rect.velocity;
+        rect.bottomRight += rect.velocity;
 }
 
 // TODO: better workgroup size UPDATE THE GLOBAL INDEX CALC IF CHANGED
