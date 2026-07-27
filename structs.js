@@ -120,7 +120,7 @@ export const circleStruct = (() => {
             radius: f32, // 4 bytes
             overlaps: u32, // 4 bytes
             velocity: vec2f, // 8 bytes
-            // pad 8 bytes
+            phys: Phys // 8 bytes
         }  // total 48 bytes
     `
     const byteCount = 48;
@@ -136,32 +136,40 @@ export const circleStruct = (() => {
                 radiusView: new Float32Array(data, 24),
                 overlapsView: new Uint32Array(data, 28),
                 velocityView: new Float32Array(data, 32),
+                physView: new Float32Array(data, 40)
             },
             count: circleCount
         };
     };
     const createFilledArray = (circleData) => {
         const data = createEmptyArray(circleData.length);
-        const {colorView, centerView, radiusView, velocityView} = data.views;
-        circleData.forEach(({color, center, radius, velocity}, i) => {
+        const {colorView, centerView, radiusView, velocityView, physView} = data.views;
+        circleData.forEach(({color, center, radius, velocity, phys}, i) => {
             colorView.set(color, i*floatCount);
             centerView.set(center, i*floatCount);
             radiusView.set([radius], i*floatCount);
             // overlaps set to 0s
             velocityView.set(velocity, i*floatCount);
-            // pad set to 0s
+            physView.set(phys, i*floatCount);
+            
         });
         return data;
     };
-    const randJSCircles =  (circleCount, minRadius, maxRadius, maxVelComp) => {
+    // Eventually move to random density/restitution
+    const randJSCircles =  (circleCount, minRadius, maxRadius, maxVelComp,  density, restitution) => {
         let circles = [];
         for(let i = 0; i < circleCount; i++) {
-            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)]
+            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)];
+            const radius = randRange(minRadius, maxRadius);
             circles.push({
                 center: [randClip(), randClip()],
                 color: randSolidColor(),
-                radius: randRange(minRadius, maxRadius),
-                velocity
+                radius,
+                velocity,
+                phys: physStruct.create({
+                    restitution,
+                    mass: Math.PI * radius**2 * density
+                })
             });
         }
         return circles;

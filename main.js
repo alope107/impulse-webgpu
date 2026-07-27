@@ -137,8 +137,10 @@ const main = async () => {
     device.queue.writeBuffer(rectBuffer, 0, rects.data);
 
     const circles = circleStruct.createFilledArray(
-        circleStruct.randJSCircles(c.circleCount, c.minCircleRadius, c.maxCircleRadius, c.maxRandVelComp)
+        circleStruct.randJSCircles(c.circleCount, c.minCircleRadius, c.maxCircleRadius, c.maxRandVelComp, c.density, c.restitution)
     );
+
+    console.log(circles.views.colorView)
 
     // TODO: double buffer?
     const circleBuffer = device.createBuffer({
