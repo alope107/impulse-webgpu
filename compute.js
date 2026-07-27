@@ -74,7 +74,8 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         circle.overlaps = 0;
         for(var i = 0u; i < arrayLength(&circles); i++) {
             let other = &circles[i];
-            circle.overlaps |= select(0u, 1u, circleOverlaps(circle, other) && id != i);
+            let normal = circleCollisionNormal(circle, other);
+            circle.overlaps |= select(0u, 1u, !all(normal == vec2f()) && id != i);
         }
 
         for(var i = 0u; i < arrayLength(&rects); i++) {
@@ -83,10 +84,14 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         }
 }
 
-fn circleOverlaps(c1 : ptr<storage, Circle, read_write>, c2: ptr<storage, Circle, read_write>) -> bool {
-    let delta = c1.center - c2.center;
+fn circleCollisionNormal(c1 : ptr<storage, Circle, read_write>, c2: ptr<storage, Circle, read_write>) -> vec2f {
+    let delta = c2.center - c1.center;
     let squaredDist = dot(delta, delta);
-    return squaredDist < pow((c1.radius + c2.radius), 2);
+    return select(
+        vec2f(), // zero vector if not colliding
+        delta / sqrt(squaredDist), // unit normal vector of c1 to c2 if colliding
+        squaredDist < pow((c1.radius + c2.radius), 2)
+    );
 }
 
 // Adapted from https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
