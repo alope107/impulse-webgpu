@@ -67,7 +67,7 @@ export const rectStruct = (() => {
                 bottomRightView: new Float32Array(data, 8),
                 velocityView: new Float32Array(data, 16),
                 overlapsView: new Uint32Array(data, 24),
-                physView: new Float32Array(data, 32) // Float32 makes sens for now... but what if phys had both f32 and u32????
+                physView: new Float32Array(data, 28) // Float32 makes sens for now... but what if phys had both f32 and u32????
             },
             count: rectCount
         };
