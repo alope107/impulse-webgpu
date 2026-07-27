@@ -32,16 +32,15 @@ ${uniformsStruct.code}
         rect.topLeft += rect.velocity;
         rect.bottomRight += rect.velocity;
 
-
         // TODO: broad phase collision etc. etc.
         rect.overlaps = 0;
         for(var i = 0u; i < arrayLength(&rects); i++) {
             let other = &rects[i];
-            rect.overlaps |= select(0u, 1u, overlaps(rect, other) && id != i);
+            rect.overlaps |= select(0u, 1u, rectOverlaps(rect, other) && id != i);
         }
 }
 
-fn overlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_write>) -> bool {
+fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_write>) -> bool {
     return !(r1.bottomRight.x < r2.topLeft.x) &&
            !(r2.bottomRight.x < r1.topLeft.x) &&
            !(r1.bottomRight.y < r2.topLeft.y) &&
@@ -61,5 +60,21 @@ fn overlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_wri
         _ = circles[0].radius;
         _ = rects[0].topLeft;
         _ = uniforms.pointerHeld;
+
+        let circle = &circles[id];
+        circle.center += circle.velocity;
+
+        // TODO: broad phase collision etc. etc.
+        circle.overlaps = 0;
+        for(var i = 0u; i < arrayLength(&circles); i++) {
+            let other = &circles[i];
+            circle.overlaps |= select(0u, 1u, circleOverlaps(circle, other) && id != i);
+        }
+}
+
+fn circleOverlaps(c1 : ptr<storage, Circle, read_write>, c2: ptr<storage, Circle, read_write>) -> bool {
+    let delta = c1.center - c2.center;
+    let squaredDist = dot(delta, delta);
+    return squaredDist < pow((c1.radius + c2.radius), 2);
 }
 `;

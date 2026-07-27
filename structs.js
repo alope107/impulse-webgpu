@@ -71,11 +71,14 @@ export const circleStruct = (() => {
             color: vec4f, // 16 bytes
             center: vec2f, // 8 bytes
             radius: f32, // 4 bytes
-            // pad 4 bytes
-        }  // total 32 bytes
+            overlaps: u32, // 4 bytes
+            velocity: vec2f, // 8 bytes
+            // pad 8 bytes
+        }  // total 48 bytes
     `
-    const byteCount = 32;
+    const byteCount = 48;
     const floatCount = byteCount / 4;
+    const uint32Count = byteCount / 4;
     const createEmptyArray = (circleCount) => {
         const data = new ArrayBuffer(byteCount * circleCount);
         return {
@@ -84,28 +87,34 @@ export const circleStruct = (() => {
                 colorView: new Float32Array(data, 0),
                 centerView: new Float32Array(data, 16),
                 radiusView: new Float32Array(data, 24),
+                overlapsView: new Uint32Array(data, 28),
+                velocityView: new Float32Array(data, 32),
             },
             count: circleCount
         };
     };
     const createFilledArray = (circleData) => {
         const data = createEmptyArray(circleData.length);
-        const {colorView, centerView, radiusView} = data.views;
-        circleData.forEach(({color, center, radius}, i) => {
+        const {colorView, centerView, radiusView, velocityView} = data.views;
+        circleData.forEach(({color, center, radius, velocity}, i) => {
             colorView.set(color, i*floatCount);
             centerView.set(center, i*floatCount);
             radiusView.set([radius], i*floatCount);
+            // overlaps set to 0s
+            velocityView.set(velocity, i*floatCount);
             // pad set to 0s
         });
         return data;
     };
-    const randJSCircles =  (circleCount, minRadius, maxRadius) => {
+    const randJSCircles =  (circleCount, minRadius, maxRadius, maxVelComp) => {
         let circles = [];
         for(let i = 0; i < circleCount; i++) {
+            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)]
             circles.push({
                 center: [randClip(), randClip()],
                 color: randSolidColor(),
-                radius: randRange(minRadius, maxRadius)
+                radius: randRange(minRadius, maxRadius),
+                velocity
             });
         }
         return circles;

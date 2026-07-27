@@ -39,9 +39,11 @@ const UNIT_CIRCLE_POINTS = ${unitCirclePointsWGSL(polysPerCircle)}
 
     let offset = r * UNIT_CIRCLE_POINTS[vertexIdx/2];
 
+    let baseColor = select(vec4(), circle.color, (vertexIdx & 1) == 0);
+
     return VertexOutput(
         vec4f(circle.center + offset, 0, 1.),
-        select(vec4(), circle.color, (vertexIdx & 1) == 0)
+        select(baseColor, vec4f(1, 0, 0, 1), circle.overlaps > 0)
     );
 }
 
