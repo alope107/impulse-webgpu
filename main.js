@@ -44,11 +44,11 @@ const main = async () => {
     });
 
     const computeModule = device.createShaderModule({
-        label: "compute shader module",
+        label: "computeShaderModule",
         code:computeShaderCode
     });
     const moveRectsPipeline = device.createComputePipeline({
-        label: "moveRects pipeline",
+        label: "moveRectsPipeline",
         layout: "auto",
         compute: {
             module: computeModule,
@@ -56,7 +56,7 @@ const main = async () => {
         }
     });
     const moveCirclesPipeline = device.createComputePipeline({
-        label: "moveCircles pipeline",
+        label: "moveCirclesPipeline",
         layout: "auto",
         compute: {
             module: computeModule,
@@ -65,11 +65,11 @@ const main = async () => {
     });
 
     const renderModule = device.createShaderModule({
-        label: "render module",
+        label: "renderModule",
         code: renderShaderCode(c.polysPerCircle)
     });
     const rectRenderPipeline = device.createRenderPipeline({
-        label: "rect render pipeline",
+        label: "rectRenderPipeline",
         layout: "auto",
         vertex: {
             entryPoint: "drawRect",
@@ -86,7 +86,7 @@ const main = async () => {
     });
     // TODO: less copypasta
     const circleRenderPipeline = device.createRenderPipeline({
-        label: "circle render pipeline",
+        label: "circleRenderPipeline",
         layout: "auto",
         vertex: {
             entryPoint: "drawCircle",
@@ -102,7 +102,7 @@ const main = async () => {
         }
     });
     const baseRenderPassDescriptor = {
-        label: "base render pass descriptor",
+        label: "baseRenderPassDescriptor",
         colorAttachments: [
             {
                 clearValue: [0, 0, 0, 1],
@@ -112,7 +112,7 @@ const main = async () => {
         ]
     };
     const layeredRenderPassDescriptor = {
-        label: "layered render pass descriptor",
+        label: "layeredRenderPassDescriptor",
         colorAttachments: [
             {
                 loadOp: "load",
@@ -176,7 +176,7 @@ const main = async () => {
         pointerPressed: 0
     });
     const uniformBuffer = device.createBuffer({
-        label: "uniform buffer",
+        label: "uniformBuffer",
         size: uniform.data.byteLength,
         usage: GPUBufferUsage.UNIFORM | 
                GPUBufferUsage.COPY_DST 

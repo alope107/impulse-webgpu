@@ -50,6 +50,9 @@ ${uniformsStruct.code}
         }
 }
 
+
+// Firefox complains about these pointers :'(
+// Argument 'r1' at index 0 is a pointer of space Storage { access: StorageAccess(LOAD | STORE) }, which can't be passed into functions.
 fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_write>) -> bool {
     return !(r1.bottomRight.x < r2.topLeft.x) &&
            !(r2.bottomRight.x < r1.topLeft.x) &&
@@ -81,7 +84,11 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         for(var i = 0u; i < arrayLength(&oldCircles); i++) {
             let other = &oldCircles[i];
             let normal = circleCollisionNormal(circle, other);
-            circle.overlaps |= select(0u, 1u, !all(normal == vec2f()) && id != i);
+            let collides = !all(normal == vec2f()) && id != i;
+            circle.overlaps |= select(0u, 1u, collides);
+            if(collides) { // TODO: branchless?
+
+            }
         }
 
         for(var i = 0u; i < arrayLength(&oldRects); i++) {
