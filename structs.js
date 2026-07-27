@@ -1,8 +1,48 @@
 import { randClip, randRange } from "./random.js";
-import { randSolidColor } from "./color.js"
+import { randSolidColor } from "./color.js";
 
 // Want to recompute layouts?
 // Go here! https://webgpufundamentals.org/webgpu/lessons/resources/wgsl-offset-computer.html
+
+export const physStruct = (() => { 
+    const code = /* wgsl */`
+        struct Phys {
+            invMass: f32, // 4 bytes
+            restitution: f32, // 4 bytes
+        }  // total 8 bytes
+    `
+    const byteCount = 8;
+    const floatCount = byteCount / 4;
+    const createEmptyArray = (physCount) => {
+        const data = new ArrayBuffer(byteCount * physCount);
+        return {
+            data,
+            views: {
+                invMassView: new Float32Array(data, 0),
+                restitutionView: new Float32Array(data, 4),
+            },
+            count: physCount
+        };
+    };
+    const createFilledArray = (physData) => {
+        const data = createEmptyArray(physData.length);
+        const {invMassView, restitutionView} = data.views;
+        physData.forEach(({invMass, restitution}, i) => {
+            invMassView.set([invMass], i*floatCount);
+            restitutionView.set([restitution], i*floatCount);
+        });
+        return data;
+    };
+    const create = ({mass, restitution}) => new Float32Array([mass !== 0 ? 1/mass : mass, restitution]);
+    return {
+        code,
+        byteCount,
+        floatCount,
+        createEmptyArray,
+        createFilledArray,
+        create
+    };
+})();
 
 export const rectStruct = (() => { 
     const code = /* wgsl */`
@@ -10,11 +50,12 @@ export const rectStruct = (() => {
             topLeft: vec2f, // 8 bytes
             bottomRight: vec2f, // 8 bytes
             velocity: vec2f, // 8 bytes
-            overlaps: u32 // 4 bytes
+            overlaps: u32, // 4 bytes
+            phys: Phys, // 8 bytes
             // pad 4 bytes
-        }  // total 32 bytes
+        }  // total 40 bytes
     `
-    const byteCount = 32;
+    const byteCount = 40;
     const floatCount = byteCount / 4;
     const uint32Count = byteCount / 4;
     const createEmptyArray = (rectCount) => {
@@ -26,22 +67,24 @@ export const rectStruct = (() => {
                 bottomRightView: new Float32Array(data, 8),
                 velocityView: new Float32Array(data, 16),
                 overlapsView: new Uint32Array(data, 24),
+                physView: new Float32Array(data, 32) // Float32 makes sens for now... but what if phys had both f32 and u32????
             },
             count: rectCount
         };
     };
     const createFilledArray = (rectData) => {
         const data = createEmptyArray(rectData.length);
-        const {topLeftView, bottomRightView, velocityView} = data.views;
-        rectData.forEach(({topLeft, bottomRight, velocity}, i) => {
+        const {topLeftView, bottomRightView, velocityView, physView} = data.views;
+        rectData.forEach(({topLeft, bottomRight, velocity, phys}, i) => {
             topLeftView.set(topLeft, i*floatCount);
             bottomRightView.set(bottomRight, i*floatCount);
             velocityView.set(velocity, i*floatCount);
-            // overlaps and padding automatically set to 0
+            physView.set(phys, i*floatCount)
         });
         return data;
     };
-    const randomJSRects = (count, minWidth, maxWidth, maxVelComp) => {
+    // Eventually move to random density / restitution
+    const randomJSRects = (count, minWidth, maxWidth, maxVelComp, density, restitution) => {
         const rects = [];
         for(let i = 0; i < count; i++) {
             const topLeft = [randClip(), randClip()];
@@ -50,7 +93,11 @@ export const rectStruct = (() => {
             rects.push({
                 topLeft,
                 bottomRight: [Math.min(topLeft[0] + w, 1), Math.min(topLeft[1] + h, 1)],
-                velocity
+                velocity,
+                phys: physStruct.create({
+                    mass: density*w*h,
+                    restitution
+                })
            });
          }
         return rects;

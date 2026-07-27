@@ -1,9 +1,10 @@
 import { global_invocation_index } from "./linear_indexing.js";
-import { rectStruct, circleStruct, uniformsStruct } from "./structs.js";
+import { rectStruct, circleStruct, uniformsStruct, physStruct } from "./structs.js";
 
 export const computeShaderCode = /* wgsl */ `
 ${global_invocation_index}
 
+${physStruct.code}
 ${rectStruct.code}
 ${circleStruct.code}
 ${uniformsStruct.code}

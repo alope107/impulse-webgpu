@@ -8,6 +8,8 @@ const defaults = {
     minCircleRadius: .05,
     maxCircleRadius: .2,
     maxRandVelComp: .01,
+    density: 1,
+    restitution: .5
 };
 
 // does not currently validate params!

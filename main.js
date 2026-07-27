@@ -122,7 +122,7 @@ const main = async () => {
     };
 
     const rects = rectStruct.createFilledArray(
-        rectStruct.randomJSRects(c.rectCount, c.minRectWidth, c.maxRectWidth, c.maxRandVelComp)
+        rectStruct.randomJSRects(c.rectCount, c.minRectWidth, c.maxRectWidth, c.maxRandVelComp, c.density, c.restitution)
     );
     // TODO: double buffer?
     const rectBuffer = device.createBuffer({

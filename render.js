@@ -1,7 +1,8 @@
-import { rectStruct, circleStruct } from "./structs.js";
+import { rectStruct, circleStruct, physStruct } from "./structs.js";
 import { unitCirclePointsWGSL } from "./geometry.js";
 
 export const renderShaderCode = (polysPerCircle) => /* wgsl */ `
+${physStruct.code}
 ${rectStruct.code}
 ${circleStruct.code}
 
