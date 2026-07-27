@@ -9,9 +9,10 @@ export const physStruct = (() => {
         struct Phys {
             invMass: f32, // 4 bytes
             restitution: f32, // 4 bytes
-        }  // total 8 bytes
+            velocity: vec2f, // 8 bytes
+        }  // total 16 bytes
     `
-    const byteCount = 8;
+    const byteCount = 16;
     const floatCount = byteCount / 4;
     const createEmptyArray = (physCount) => {
         const data = new ArrayBuffer(byteCount * physCount);
@@ -20,20 +21,28 @@ export const physStruct = (() => {
             views: {
                 invMassView: new Float32Array(data, 0),
                 restitutionView: new Float32Array(data, 4),
+                velocityView: new Float32Array(data, 8)
             },
             count: physCount
         };
     };
     const createFilledArray = (physData) => {
         const data = createEmptyArray(physData.length);
-        const {invMassView, restitutionView} = data.views;
-        physData.forEach(({invMass, restitution}, i) => {
+        const {invMassView, restitutionView, velocityView} = data.views;
+        physData.forEach(({invMass, restitution, velocity}, i) => {
             invMassView.set([invMass], i*floatCount);
             restitutionView.set([restitution], i*floatCount);
+            velocityView.set(velocity, i*floatCount);
         });
         return data;
     };
-    const create = ({mass, restitution}) => new Float32Array([mass !== 0 ? 1/mass : mass, restitution]);
+    const create = ({mass, restitution, velocity}) => new Float32Array(
+        [mass !== 0 ? 1/mass : mass,
+         restitution,
+         velocity[0],
+         velocity[1]
+        ]
+    );
     return {
         code,
         byteCount,
@@ -49,9 +58,8 @@ export const rectStruct = (() => {
         struct Rect {
             topLeft: vec2f, // 8 bytes
             bottomRight: vec2f, // 8 bytes
-            velocity: vec2f, // 8 bytes
+            phys: Phys, // 16 bytes
             overlaps: u32, // 4 bytes
-            phys: Phys, // 8 bytes
             // pad 4 bytes
         }  // total 40 bytes
     `
@@ -65,21 +73,21 @@ export const rectStruct = (() => {
             views: {
                 topLeftView: new Float32Array(data, 0),
                 bottomRightView: new Float32Array(data, 8),
-                velocityView: new Float32Array(data, 16),
-                overlapsView: new Uint32Array(data, 24),
-                physView: new Float32Array(data, 28) // Float32 makes sens for now... but what if phys had both f32 and u32????
+                physView: new Float32Array(data, 16), // Float32 makes sens for now... but what if phys had both f32 and u32????
+                overlapsView: new Uint32Array(data, 32),
             },
             count: rectCount
         };
     };
     const createFilledArray = (rectData) => {
         const data = createEmptyArray(rectData.length);
-        const {topLeftView, bottomRightView, velocityView, physView} = data.views;
+        const {topLeftView, bottomRightView, physView} = data.views;
         rectData.forEach(({topLeft, bottomRight, velocity, phys}, i) => {
             topLeftView.set(topLeft, i*floatCount);
             bottomRightView.set(bottomRight, i*floatCount);
-            velocityView.set(velocity, i*floatCount);
             physView.set(phys, i*floatCount)
+            // overlaps set to 0
+            // pad set to 0
         });
         return data;
     };
@@ -89,14 +97,14 @@ export const rectStruct = (() => {
         for(let i = 0; i < count; i++) {
             const topLeft = [randClip(), randClip()];
             const w = randRange(minWidth, maxWidth), h = randRange(minWidth, maxWidth);
-            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)]
+            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)];
             rects.push({
                 topLeft,
                 bottomRight: [Math.min(topLeft[0] + w, 1), Math.min(topLeft[1] + h, 1)],
-                velocity,
                 phys: physStruct.create({
                     mass: density*w*h,
-                    restitution
+                    restitution,
+                    velocity
                 })
            });
          }
@@ -119,8 +127,7 @@ export const circleStruct = (() => {
             center: vec2f, // 8 bytes
             radius: f32, // 4 bytes
             overlaps: u32, // 4 bytes
-            velocity: vec2f, // 8 bytes
-            phys: Phys // 8 bytes
+            phys: Phys // 16 bytes
         }  // total 48 bytes
     `
     const byteCount = 48;
@@ -135,21 +142,19 @@ export const circleStruct = (() => {
                 centerView: new Float32Array(data, 16),
                 radiusView: new Float32Array(data, 24),
                 overlapsView: new Uint32Array(data, 28),
-                velocityView: new Float32Array(data, 32),
-                physView: new Float32Array(data, 40)
+                physView: new Float32Array(data, 32)
             },
             count: circleCount
         };
     };
     const createFilledArray = (circleData) => {
         const data = createEmptyArray(circleData.length);
-        const {colorView, centerView, radiusView, velocityView, physView} = data.views;
-        circleData.forEach(({color, center, radius, velocity, phys}, i) => {
+        const {colorView, centerView, radiusView, physView} = data.views;
+        circleData.forEach(({color, center, radius, phys}, i) => {
             colorView.set(color, i*floatCount);
             centerView.set(center, i*floatCount);
             radiusView.set([radius], i*floatCount);
             // overlaps set to 0s
-            velocityView.set(velocity, i*floatCount);
             physView.set(phys, i*floatCount);
             
         });
@@ -165,10 +170,10 @@ export const circleStruct = (() => {
                 center: [randClip(), randClip()],
                 color: randSolidColor(),
                 radius,
-                velocity,
                 phys: physStruct.create({
                     restitution,
-                    mass: Math.PI * radius**2 * density
+                    mass: Math.PI * radius**2 * density,
+                    velocity
                 })
             });
         }

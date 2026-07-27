@@ -140,8 +140,6 @@ const main = async () => {
         circleStruct.randJSCircles(c.circleCount, c.minCircleRadius, c.maxCircleRadius, c.maxRandVelComp, c.density, c.restitution)
     );
 
-    console.log(circles.views.colorView)
-
     // TODO: double buffer?
     const circleBuffer = device.createBuffer({
         label: "circleBuffer",

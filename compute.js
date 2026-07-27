@@ -30,8 +30,8 @@ ${uniformsStruct.code}
         _ = uniforms.pointerHeld;
 
         let rect = &rects[id];
-        rect.topLeft += rect.velocity;
-        rect.bottomRight += rect.velocity;
+        rect.topLeft += rect.phys.velocity;
+        rect.bottomRight += rect.phys.velocity;
 
         // TODO: broad phase collision etc. etc.
         rect.overlaps = 0;
@@ -68,7 +68,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         _ = uniforms.pointerHeld;
 
         let circle = &circles[id];
-        circle.center += circle.velocity;
+        circle.center += circle.phys.velocity;
 
         // TODO: broad phase collision etc. etc.
         circle.overlaps = 0;
