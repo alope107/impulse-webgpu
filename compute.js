@@ -50,9 +50,22 @@ ${uniformsStruct.code}
         }
 }
 
+// to pointer or not to pointer
+fn calcJ(p1 : Phys, p2 : Phys, normal : vec2f) -> f32 {
+    let e = min(p1.restitution, p2.restitution);
+    let vRel = p2.velocity - p1.velocity;
+    let velAlongNormal = dot(vRel, normal);
+    return select(
+        (-(1+e) * velAlongNormal) / (p1.invMass + p2.invMass),
+        0,
+        velAlongNormal > 0
+    ); // do not apply impulse if they are already separating
+}
+
 
 // Firefox complains about these pointers :'(
 // Argument 'r1' at index 0 is a pointer of space Storage { access: StorageAccess(LOAD | STORE) }, which can't be passed into functions.
+// ..should prob give up on using pointer here
 fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read_write>) -> bool {
     return !(r1.bottomRight.x < r2.topLeft.x) &&
            !(r2.bottomRight.x < r1.topLeft.x) &&
@@ -76,25 +89,30 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
 
-        let circle = &newCircles[id];
-        circle.center += circle.phys.velocity;
+        let newCircle = &newCircles[id];
+        let oldCircle = &oldCircles[id];
+        newCircle.center = oldCircle.center;
+        newCircle.phys.velocity = oldCircle.phys.velocity;
 
         // TODO: broad phase collision etc. etc.
-        circle.overlaps = 0;
+        newCircle.overlaps = 0;
         for(var i = 0u; i < arrayLength(&oldCircles); i++) {
             let other = &oldCircles[i];
-            let normal = circleCollisionNormal(circle, other);
+            let normal = circleCollisionNormal(oldCircle, other);
             let collides = !all(normal == vec2f()) && id != i;
-            circle.overlaps |= select(0u, 1u, collides);
+            newCircle.overlaps |= select(0u, 1u, collides);
             if(collides) { // TODO: branchless?
-
+                let j = calcJ(oldCircle.phys, other.phys, normal);
+                newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
             }
         }
 
         for(var i = 0u; i < arrayLength(&oldRects); i++) {
             let rect = &oldRects[i];
-            circle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
+            newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
+
+        newCircle.center += newCircle.phys.velocity;
 }
 
 fn circleCollisionNormal(c1 : ptr<storage, Circle, read_write>, c2: ptr<storage, Circle, read_write>) -> vec2f {
