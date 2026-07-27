@@ -10,8 +10,10 @@ ${circleStruct.code}
 ${uniformsStruct.code}
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@group(0) @binding(1) var<storage, read_write> rects : array<Rect>; 
-@group(0) @binding(2) var<storage, read_write> circles : array<Circle>; 
+@group(0) @binding(1) var<storage, read_write> oldRects : array<Rect>; 
+@group(0) @binding(2) var<storage, read_write> oldCircles : array<Circle>;
+@group(0) @binding(3) var<storage, read_write> newRects : array<Rect>; 
+@group(0) @binding(4) var<storage, read_write> newCircles : array<Circle>; 
 
 
 // TODO: better workgroup size UPDATE THE GLOBAL INDEX CALC IF CHANGED
@@ -21,27 +23,29 @@ ${uniformsStruct.code}
     @builtin(num_workgroups) num_workgroups: vec3<u32>) {
         let id = global_invocation_index(workgroup_id, local_invocation_index, num_workgroups,
                                          8*8*1 /* CHANGE ME WHEN WORKGROUP SIZE CHANGES */);
-        if(id >= arrayLength(&rects)) { return; }
+        if(id >= arrayLength(&oldRects)) { return; }
 
         // Just making sure we don't lose our bindings
         // TODO: Automatic binding creation
-        _ = circles[0].radius;
-        _ = rects[0].topLeft;
+        _ = oldCircles[0].radius;
+        _ = newCircles[0].radius;
+        _ = oldRects[0].topLeft;
+        _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
 
-        let rect = &rects[id];
+        let rect = &newRects[id];
         rect.topLeft += rect.phys.velocity;
         rect.bottomRight += rect.phys.velocity;
 
         // TODO: broad phase collision etc. etc.
         rect.overlaps = 0;
-        for(var i = 0u; i < arrayLength(&rects); i++) {
-            let other = &rects[i];
+        for(var i = 0u; i < arrayLength(&oldRects); i++) {
+            let other = &oldRects[i];
             rect.overlaps |= select(0u, 1u, rectOverlaps(rect, other) && id != i);
         }
 
-        for(var i = 0u; i < arrayLength(&circles); i++) {
-            let circle = &circles[i];
+        for(var i = 0u; i < arrayLength(&oldCircles); i++) {
+            let circle = &oldCircles[i];
             rect.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
         }
 }
@@ -60,26 +64,28 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
     @builtin(num_workgroups) num_workgroups: vec3<u32>) {
         let id = global_invocation_index(workgroup_id, local_invocation_index, num_workgroups,
                                          8*8*1 /* CHANGE ME WHEN WORKGROUP SIZE CHANGES */);
-        if(id >= arrayLength(&circles)) { return; }
+        if(id >= arrayLength(&oldCircles)) { return; }
 
         // Just making sure we don't lose our bindings
-        _ = circles[0].radius;
-        _ = rects[0].topLeft;
+        _ = oldCircles[0].radius;
+        _ = newCircles[0].radius;
+        _ = oldRects[0].topLeft;
+        _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
 
-        let circle = &circles[id];
+        let circle = &newCircles[id];
         circle.center += circle.phys.velocity;
 
         // TODO: broad phase collision etc. etc.
         circle.overlaps = 0;
-        for(var i = 0u; i < arrayLength(&circles); i++) {
-            let other = &circles[i];
+        for(var i = 0u; i < arrayLength(&oldCircles); i++) {
+            let other = &oldCircles[i];
             let normal = circleCollisionNormal(circle, other);
             circle.overlaps |= select(0u, 1u, !all(normal == vec2f()) && id != i);
         }
 
-        for(var i = 0u; i < arrayLength(&rects); i++) {
-            let rect = &rects[i];
+        for(var i = 0u; i < arrayLength(&oldRects); i++) {
+            let rect = &oldRects[i];
             circle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
         }
 }
