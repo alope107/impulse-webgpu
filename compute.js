@@ -33,21 +33,27 @@ ${uniformsStruct.code}
         _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
 
-        let rect = &newRects[id];
-        rect.topLeft += rect.phys.velocity;
-        rect.bottomRight += rect.phys.velocity;
+        let newRect = &newRects[id];
+        let oldRect = &oldRects[id];
+
+        newRect.topLeft = oldRect.topLeft;
+        newRect.bottomRight = oldRect.bottomRight;
+        newRect.phys.velocity = oldRect.phys.velocity;
+
 
         // TODO: broad phase collision etc. etc.
-        rect.overlaps = 0;
+        newRect.overlaps = 0;
         for(var i = 0u; i < arrayLength(&oldRects); i++) {
             let other = &oldRects[i];
-            rect.overlaps |= select(0u, 1u, rectOverlaps(rect, other) && id != i);
+            newRect.overlaps |= select(0u, 1u, rectOverlaps(oldRect, other) && id != i);
         }
 
         for(var i = 0u; i < arrayLength(&oldCircles); i++) {
             let circle = &oldCircles[i];
-            rect.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
+            newRect.overlaps |= select(0u, 1u, rectCircleOverlaps(oldRect, circle));
         }
+        newRect.topLeft += newRect.phys.velocity;
+        newRect.bottomRight += newRect.phys.velocity;
 }
 
 // to pointer or not to pointer
