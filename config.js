@@ -18,9 +18,9 @@ const configFromQueryParams = (defaultConfig=defaults) => {
 
     const conf = {};
     for(const [tunable, defaultVal] of Object.entries(defaultConfig)) {
-        conf[tunable] = params.get(tunable) || defaultVal;
+        conf[tunable] = +params.get(tunable) || defaultVal;
     }
-    
+    console.log(conf)
     return conf;
 };
 
