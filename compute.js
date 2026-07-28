@@ -104,7 +104,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         newCircle.overlaps = 0;
         for(var i = 0u; i < arrayLength(&oldCircles); i++) {
             let other = &oldCircles[i];
-            let normal = circleCollisionNormal(oldCircle, other);
+            let normal = circleCollisionNormal(*oldCircle, *other);
             let collides = !all(normal == vec2f()) && id != i;
             newCircle.overlaps |= select(0u, 1u, collides);
             if(collides) { // TODO: branchless?
@@ -118,10 +118,44 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
 
+
+        // Pretend there is a circle at the pointer if the pointer exits
+        // TODO: cleaup
+        // if(uniforms.pointerHeld > 0) {
+        //     let other = Circle(
+        //         vec4f(),
+        //         uniforms.pointerLoc,
+        //         0.01,//TODO: configurable
+        //         0u,
+        //         Phys(
+        //             0, 1, oldCircle.center - uniforms.pointerLoc
+        //         )
+        //     );
+
+        //     let normal = circleCollisionNormal(*oldCircle, other);
+        //     let collides = !all(normal == vec2f());
+        //     newCircle.overlaps |= select(0u, 1u, collides);
+        //     if(collides) { // TODO: branchless?
+        //         let j = calcJ(oldCircle.phys, other.phys, normal);
+        //         newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
+        //     }
+
+        let pointerRadius=.05;
+        if(uniforms.pointerHeld > 0) {
+            let delta = newCircle.center - uniforms.pointerLoc;
+            let deltaLen = length(delta);
+            if(deltaLen < newCircle.radius+pointerRadius) {
+                newCircle.phys.velocity += delta/10;
+            }
+        }
+
         newCircle.center += newCircle.phys.velocity;
+
+        // Turning off collision rendering for a hot sec
+        newCircle.overlaps = 0;
 }
 
-fn circleCollisionNormal(c1 : ptr<storage, Circle, read_write>, c2: ptr<storage, Circle, read_write>) -> vec2f {
+fn circleCollisionNormal(c1 : Circle, c2: Circle) -> vec2f {
     let delta = c2.center - c1.center;
     let squaredDist = dot(delta, delta);
     return select(
