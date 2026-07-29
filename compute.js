@@ -9,6 +9,11 @@ ${rectStruct.code}
 ${circleStruct.code}
 ${uniformsStruct.code}
 
+struct Manifold {
+    collisionNormal: vec2f,
+    penetrationDepth: f32 
+}
+
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read_write> oldRects : array<Rect>; 
 @group(0) @binding(2) var<storage, read_write> oldCircles : array<Circle>;
@@ -104,7 +109,8 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         newCircle.overlaps = 0;
         for(var i = 0u; i < arrayLength(&oldCircles); i++) {
             let other = &oldCircles[i];
-            let normal = circleCollisionNormal(*oldCircle, *other);
+            let manifold = circleCollision(*oldCircle, *other);
+            let normal = manifold.collisionNormal;
             let collides = !all(normal == vec2f()) && id != i;
             newCircle.overlaps |= select(0u, 1u, collides);
             if(collides) { // TODO: branchless?
@@ -149,20 +155,46 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             }
         }
 
-        newCircle.center += newCircle.phys.velocity;
+        // newCircle.phys.velocity.y -= .0001;
 
-        // Turning off collision rendering for a hot sec
-        newCircle.overlaps = 0;
+        let maxSpeed = .1;
+        let speed = length(newCircle.phys.velocity);
+        if(speed > maxSpeed) {
+            newCircle.phys.velocity *= maxSpeed/speed;
+        }
+
+        // TODO: Configurable / better base friction?
+        newCircle.center += newCircle.phys.velocity*.9;
+
+        // newCircle.overlaps = 0;
+        // if(newCircle.center.y < -1) {
+        //     newCircle.center.y = -1;
+        //     newCircle.phys.velocity.y *= -newCircle.phys.restitution;
+        // }
+        // if(newCircle.center.y > 1) {
+        //     newCircle.center.y = 1;
+        //     newCircle.phys.velocity.y *= -newCircle.phys.restitution;
+        // }
+        // if(newCircle.center.x < -1) {
+        //     newCircle.center.x = -1;
+        //     newCircle.phys.velocity.x *= -newCircle.phys.restitution;
+        // }
+        // if(newCircle.center.x > 1) {
+        //     newCircle.center.x = 1;
+        //     newCircle.phys.velocity.x *= -newCircle.phys.restitution;
+        // }
 }
 
-fn circleCollisionNormal(c1 : Circle, c2: Circle) -> vec2f {
+fn circleCollision(c1 : Circle, c2: Circle) -> Manifold {
     let delta = c2.center - c1.center;
     let squaredDist = dot(delta, delta);
-    return select(
-        vec2f(), // zero vector if not colliding
-        delta / sqrt(squaredDist), // unit normal vector of c1 to c2 if colliding
-        squaredDist < pow((c1.radius + c2.radius), 2)
-    );
+    let touchingDist = c1.radius + c2.radius;
+    if(squaredDist < pow(touchingDist, 2)) {
+        let dist = sqrt(squaredDist);
+        let penetrationDepth = touchingDist - dist;
+        return Manifold(delta/dist, penetrationDepth);
+    }
+    return Manifold(vec2f(), 0);
 }
 
 // Adapted from https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
