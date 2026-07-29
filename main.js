@@ -133,17 +133,12 @@ const main = async () => {
                GPUBufferUsage.VERTEX
     };
     // TODO: double buffer?
-    const rectBufferPing = device.createBuffer({
+    const rectBuffer = device.createBuffer({
         ...rectBufferConfig,
-        label: "rectBufferPing",
-    });
-    const rectBufferPong = device.createBuffer({
-        ...rectBufferConfig,
-        label: "rectBufferPong",
+        label: "rectBuffer",
     });
     
-    device.queue.writeBuffer(rectBufferPing, 0, rects.data);
-    device.queue.writeBuffer(rectBufferPong, 0, rects.data);
+    device.queue.writeBuffer(rectBuffer, 0, rects.data);
 
     const circles = circleStruct.createFilledArray(
         circleStruct.randJSCircles(c.circleCount, c.minCircleRadius, c.maxCircleRadius, c.maxRandVelComp, c.density, c.restitution)
@@ -158,16 +153,11 @@ const main = async () => {
                GPUBufferUsage.VERTEX
     };
     // TODO: double buffer?
-    const circleBufferPing = device.createBuffer( {
+    const circleBuffer = device.createBuffer( {
         ...circleBufferConfig,
-        label: "circleBufferPing",
+        label: "circleBuffer",
     });
-    const circleBufferPong = device.createBuffer( {
-        ...circleBufferConfig,
-        label: "circleBufferPong",
-    });
-    device.queue.writeBuffer(circleBufferPing, 0, circles.data);
-    device.queue.writeBuffer(circleBufferPong, 0, circles.data);
+    device.queue.writeBuffer(circleBuffer, 0, circles.data);
 
 
     let uniform = uniformsStruct.createFilled({
@@ -183,82 +173,41 @@ const main = async () => {
     });
 
     // TODO: manually set layouts
-    const moveRectsBindGroupPingToPong = device.createBindGroup({
-        label: "moveRectsBindGroupPingToPong",
+    const moveRectsBindGroup = device.createBindGroup({
+        label: "moveRectsBindGroup",
         layout: moveRectsPipeline.getBindGroupLayout(0),
         entries: [
             {binding: 0, resource: uniformBuffer},
-            {binding: 1, resource: rectBufferPing},
-            {binding: 2, resource: circleBufferPing},
-            {binding: 3, resource: rectBufferPong},
-            {binding: 4, resource: circleBufferPong},
-        ]
-    });
-    const moveRectsBindGroupPongToPing = device.createBindGroup({
-        label: "moveRectsBindGroupPongToPing",
-        layout: moveRectsPipeline.getBindGroupLayout(0),
-        entries: [
-            {binding: 0, resource: uniformBuffer},
-            {binding: 1, resource: rectBufferPong},
-            {binding: 2, resource: circleBufferPong},
-            {binding: 3, resource: rectBufferPing},
-            {binding: 4, resource: circleBufferPing},
+            {binding: 1, resource: rectBuffer},
+            {binding: 2, resource: circleBuffer},
         ]
     });
 
-    const renderRectsBindGroupPing = device.createBindGroup({
-        label: "renderRectsBindGroupPing",
+    const renderRectsBindGroup = device.createBindGroup({
+        label: "renderRectsBindGroup",
         layout: rectRenderPipeline.getBindGroupLayout(0),
         entries: [
-            {binding: 0, resource: rectBufferPing},
-            {binding: 1, resource: circleBufferPing},
-        ]
-    });
-    const renderRectsBindGroupPong = device.createBindGroup({
-        label: "renderRectsBindGroupPong",
-        layout: rectRenderPipeline.getBindGroupLayout(0),
-        entries: [
-            {binding: 0, resource: rectBufferPong},
-            {binding: 1, resource: circleBufferPong},
+            {binding: 0, resource: rectBuffer},
+            {binding: 1, resource: circleBuffer},
         ]
     });
 
-    const moveCirclesBindGroupPingToPong = device.createBindGroup({
-        label: "moveCirclesBindGroupPongtoPing",
+    const moveCirclesBindGroup = device.createBindGroup({
+        label: "moveCirclesBindGroup",
         layout: moveCirclesPipeline.getBindGroupLayout(0),
         entries: [
             {binding: 0, resource: uniformBuffer},
-            {binding: 1, resource: rectBufferPing},
-            {binding: 2, resource: circleBufferPing},
-            {binding: 3, resource: rectBufferPong},
-            {binding: 4, resource: circleBufferPong},
+            {binding: 1, resource: rectBuffer},
+            {binding: 2, resource: circleBuffer},
         ]
     });
-    const moveCirclesBindGroupPongToPing = device.createBindGroup({
-        label: "moveCirclesBindGroupPongtoPing",
-        layout: moveCirclesPipeline.getBindGroupLayout(0),
-        entries: [
-            {binding: 0, resource: uniformBuffer},
-            {binding: 1, resource: rectBufferPong},
-            {binding: 2, resource: circleBufferPong},
-            {binding: 3, resource: rectBufferPing},
-            {binding: 4, resource: circleBufferPing},
-        ]
-    });
-    const renderCirclesBindGroupPing = device.createBindGroup({
-        label: "renderCirclesBindGroupPing",
+
+    const renderCirclesBindGroup = device.createBindGroup({
+        label: "renderCirclesBindGroup",
         layout: circleRenderPipeline.getBindGroupLayout(0),
         entries: [
-            {binding: 0, resource: rectBufferPing},
-            {binding: 1, resource: circleBufferPing},
-        ]
-    });
-    const renderCirclesBindGroupPong = device.createBindGroup({
-        label: "renderCirclesBindGroupPong",
-        layout: circleRenderPipeline.getBindGroupLayout(0),
-        entries: [
-            {binding: 0, resource: rectBufferPong},
-            {binding: 1, resource: circleBufferPong},
+            {binding: 0, resource: rectBuffer},
+            {binding: 1, resource: circleBuffer},
         ]
     });
 
@@ -275,40 +224,38 @@ const main = async () => {
 
 
     let frameCount = 0;
-    let pingToPong = true;
     const render = async() => {
         const encoder = device.createCommandEncoder({label: "encoder"});
 
         let moveRectsPass = encoder.beginComputePass();
         moveRectsPass.setPipeline(moveRectsPipeline);
-        moveRectsPass.setBindGroup(0, pingToPong ? moveRectsBindGroupPingToPong : moveRectsBindGroupPongToPing);
+        moveRectsPass.setBindGroup(0, moveRectsBindGroup);
         moveRectsPass.dispatchWorkgroups(Math.ceil(rects.count/64), Math.ceil(rects.count/64), 1);
         moveRectsPass.end();
 
         let moveCirclesPass = encoder.beginComputePass();
         moveCirclesPass.setPipeline(moveCirclesPipeline);
-        moveCirclesPass.setBindGroup(0, pingToPong ? moveCirclesBindGroupPingToPong : moveCirclesBindGroupPongToPing);
+        moveCirclesPass.setBindGroup(0, moveCirclesBindGroup);
         moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
         moveCirclesPass.end();
 
         baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
         const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
         rectRenderPass.setPipeline(rectRenderPipeline);
-        rectRenderPass.setBindGroup(0, pingToPong ? renderRectsBindGroupPong : renderRectsBindGroupPong);
+        rectRenderPass.setBindGroup(0, renderRectsBindGroup);
         rectRenderPass.draw(4, rects.count); // Rectangle needs 4 vertices
         rectRenderPass.end();
 
         layeredRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
         const circleRenderPass = encoder.beginRenderPass(layeredRenderPassDescriptor);
         circleRenderPass.setPipeline(circleRenderPipeline);
-        circleRenderPass.setBindGroup(0, pingToPong ? renderCirclesBindGroupPong : renderCirclesBindGroupPing);
+        circleRenderPass.setBindGroup(0, renderCirclesBindGroup);
         circleRenderPass.draw(c.polysPerCircle*2 + 1, circles.count); 
         circleRenderPass.end();
 
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
         frameCount++;
-        pingToPong = !pingToPong;
     };
 
     const animationFrame = async (timestamp) => {
