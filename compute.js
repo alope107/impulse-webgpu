@@ -167,22 +167,22 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         newCircle.center += newCircle.phys.velocity*.9;
 
         // newCircle.overlaps = 0;
-        // if(newCircle.center.y < -1) {
-        //     newCircle.center.y = -1;
-        //     newCircle.phys.velocity.y *= -newCircle.phys.restitution;
-        // }
-        // if(newCircle.center.y > 1) {
-        //     newCircle.center.y = 1;
-        //     newCircle.phys.velocity.y *= -newCircle.phys.restitution;
-        // }
-        // if(newCircle.center.x < -1) {
-        //     newCircle.center.x = -1;
-        //     newCircle.phys.velocity.x *= -newCircle.phys.restitution;
-        // }
-        // if(newCircle.center.x > 1) {
-        //     newCircle.center.x = 1;
-        //     newCircle.phys.velocity.x *= -newCircle.phys.restitution;
-        // }
+        if(newCircle.center.y < -1) {
+            newCircle.center.y = -1;
+            newCircle.phys.velocity.y *= -newCircle.phys.restitution;
+        }
+        if(newCircle.center.y > 1) {
+            newCircle.center.y = 1;
+            newCircle.phys.velocity.y *= -newCircle.phys.restitution;
+        }
+        if(newCircle.center.x < -1) {
+            newCircle.center.x = -1;
+            newCircle.phys.velocity.x *= -newCircle.phys.restitution;
+        }
+        if(newCircle.center.x > 1) {
+            newCircle.center.x = 1;
+            newCircle.phys.velocity.x *= -newCircle.phys.restitution;
+        }
 }
 
 fn circleCollision(c1 : Circle, c2: Circle) -> Manifold {
