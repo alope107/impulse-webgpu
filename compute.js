@@ -101,6 +101,18 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             if(collides) { // TODO: branchless?
                 let j = calcJ(circle.phys, other.phys, normal);
                 circle.phys.velocity += -j * circle.phys.invMass * normal;
+
+                // positional correction
+                // TODO: configurable
+                // let percent = 0.0;
+                // let slop = 0.01;
+
+                // // Allow a bit of penetration to avoid jitter
+                // let depth = max(manifold.penetrationDepth - slop, 0.0);
+
+                // let correction = (depth / (circle.phys.invMass + other.phys.invMass)) * percent * normal;
+                // // Directly correct position - not going through velocity
+                // circle.center -= circle.phys.invMass * correction;
             }
         }
 
@@ -108,7 +120,6 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             let rect = &rects[i];
             circle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
         }
-
 
         let pointerRadius=.05;
         if(uniforms.pointerHeld > 0) {
@@ -119,7 +130,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             }
         }
 
-        circle.phys.velocity.y -= .0001;
+        // circle.phys.velocity.y -= .0001;
 
         let maxSpeed = .1;
         let speed = length(circle.phys.velocity);
@@ -128,24 +139,27 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         }
 
         // TODO: Configurable / better base friction?
-        circle.center += circle.phys.velocity*.9;
+        circle.center += circle.phys.velocity;
 
-        if(circle.center.y < -1) {
-            circle.center.y = -1;
+        if(circle.center.y - circle.radius < -1) {
+            circle.center.y = -1 + circle.radius;
             circle.phys.velocity.y *= -circle.phys.restitution;
         }
-        if(circle.center.y > 1) {
-            circle.center.y = 1;
+        if(circle.center.y + circle.radius > 1) {
+            circle.center.y = 1 - circle.radius;
             circle.phys.velocity.y *= -circle.phys.restitution;
         }
-        if(circle.center.x < -1) {
-            circle.center.x = -1;
+        if(circle.center.x - circle.radius < -1) {
+            circle.center.x = -1 + circle.radius;
             circle.phys.velocity.x *= -circle.phys.restitution;
         }
-        if(circle.center.x > 1) {
-            circle.center.x = 1;
+        if(circle.center.x + circle.radius > 1) {
+            circle.center.x = 1 - circle.radius;
             circle.phys.velocity.x *= -circle.phys.restitution;
         }
+
+        // turning off collision rendering for now
+        circle.overlaps = 0;
 }
 
 fn circleCollision(c1 : Circle, c2: Circle) -> Manifold {
