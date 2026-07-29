@@ -15,8 +15,10 @@ struct Manifold {
 }
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@group(0) @binding(1) var<storage, read_write> rects : array<Rect>; 
-@group(0) @binding(2) var<storage, read_write> circles : array<Circle>; 
+@group(0) @binding(1) var<storage, read_write> oldRects : array<Rect>; 
+@group(0) @binding(2) var<storage, read_write> oldCircles : array<Circle>;
+@group(0) @binding(3) var<storage, read_write> newRects : array<Rect>; 
+@group(0) @binding(4) var<storage, read_write> newCircles : array<Circle>; 
 
 
 // TODO: better workgroup size UPDATE THE GLOBAL INDEX CALC IF CHANGED
@@ -26,29 +28,37 @@ struct Manifold {
     @builtin(num_workgroups) num_workgroups: vec3<u32>) {
         let id = global_invocation_index(workgroup_id, local_invocation_index, num_workgroups,
                                          8*8*1 /* CHANGE ME WHEN WORKGROUP SIZE CHANGES */);
-        if(id >= arrayLength(&rects)) { return; }
+        if(id >= arrayLength(&oldRects)) { return; }
 
         // Just making sure we don't lose our bindings
         // TODO: Automatic binding creation
-        _ = circles[0].radius;
-        _ = rects[0].topLeft;
+        _ = oldCircles[0].radius;
+        _ = newCircles[0].radius;
+        _ = oldRects[0].topLeft;
+        _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
 
-        let rect = &rects[id];
+        let newRect = &newRects[id];
+        let oldRect = &oldRects[id];
+
+        newRect.topLeft = oldRect.topLeft;
+        newRect.bottomRight = oldRect.bottomRight;
+        newRect.phys.velocity = oldRect.phys.velocity;
+
 
         // TODO: broad phase collision etc. etc.
-        rect.overlaps = 0;
-        for(var i = 0u; i < arrayLength(&rects); i++) {
-            let other = &rects[i];
-            rect.overlaps |= select(0u, 1u, rectOverlaps(rect, other) && id != i);
+        newRect.overlaps = 0;
+        for(var i = 0u; i < arrayLength(&oldRects); i++) {
+            let other = &oldRects[i];
+            newRect.overlaps |= select(0u, 1u, rectOverlaps(oldRect, other) && id != i);
         }
 
-        for(var i = 0u; i < arrayLength(&circles); i++) {
-            let circle = &circles[i];
-            rect.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
+        for(var i = 0u; i < arrayLength(&newCircles); i++) {
+            let circle = &newCircles[i];
+            newRect.overlaps |= select(0u, 1u, rectCircleOverlaps(oldRect, circle));
         }
-        rect.topLeft += rect.phys.velocity;
-        rect.bottomRight += rect.phys.velocity;
+        newRect.topLeft += newRect.phys.velocity;
+        newRect.bottomRight += newRect.phys.velocity;
 }
 
 // to pointer or not to pointer
@@ -81,26 +91,29 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
     @builtin(num_workgroups) num_workgroups: vec3<u32>) {
         let id = global_invocation_index(workgroup_id, local_invocation_index, num_workgroups,
                                          8*8*1 /* CHANGE ME WHEN WORKGROUP SIZE CHANGES */);
-        if(id >= arrayLength(&circles)) { return; }
+        if(id >= arrayLength(&newCircles)) { return; }
 
         // Just making sure we don't lose our bindings
-        _ = circles[0].radius;
-        _ = rects[0].topLeft;
+        _ = oldCircles[0].radius;
+        _ = newCircles[0].radius;
+        _ = oldRects[0].topLeft;
+        _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
 
-        let circle = &circles[id];
+        let newCircle = &newCircles[id];
+        let oldCircle = &newCircles[id];
+        newCircle.center = oldCircle.center;
+        newCircle.phys.velocity = oldCircle.phys.velocity;
 
         // TODO: broad phase collision etc. etc.
-        circle.overlaps = 0;
-        for(var i = 0u; i < arrayLength(&circles); i++) {
-            let other = &circles[i];
-            let manifold = circleCollision(*circle, *other);
+        newCircle.overlaps = 0;
+        for(var i = 0u; i < arrayLength(&newCircles); i++) {
+            let other = &newCircles[i];
+            let manifold = circleCollision(*oldCircle, *other);
             let normal = manifold.collisionNormal;
             let collides = !all(normal == vec2f()) && id != i;
-            circle.overlaps |= select(0u, 1u, collides);
+            newCircle.overlaps |= select(0u, 1u, collides);
             if(collides) { // TODO: branchless?
-                let j = calcJ(circle.phys, other.phys, normal);
-                circle.phys.velocity += -j * circle.phys.invMass * normal;
 
                 // positional correction
                 // TODO: configurable
@@ -113,53 +126,54 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
                 // let correction = (depth / (circle.phys.invMass + other.phys.invMass)) * percent * normal;
                 // // Directly correct position - not going through velocity
                 // circle.center -= circle.phys.invMass * correction;
+                let j = calcJ(oldCircle.phys, other.phys, normal);
+                newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
             }
         }
 
-        for(var i = 0u; i < arrayLength(&rects); i++) {
-            let rect = &rects[i];
-            circle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, circle));
+        for(var i = 0u; i < arrayLength(&oldRects); i++) {
+            let rect = &oldRects[i];
+            newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
 
         let pointerRadius=.05;
         if(uniforms.pointerHeld > 0) {
-            let delta = circle.center - uniforms.pointerLoc;
+            let delta = newCircle.center - uniforms.pointerLoc;
             let deltaLen = length(delta);
-            if(deltaLen < circle.radius+pointerRadius) {
-                circle.phys.velocity += delta/10;
+            if(deltaLen < newCircle.radius+pointerRadius) {
+                newCircle.phys.velocity += delta/10;
             }
         }
 
         // circle.phys.velocity.y -= .0001;
 
         let maxSpeed = .1;
-        let speed = length(circle.phys.velocity);
+        let speed = length(newCircle.phys.velocity);
         if(speed > maxSpeed) {
-            circle.phys.velocity *= maxSpeed/speed;
+            newCircle.phys.velocity *= maxSpeed/speed;
         }
 
         // TODO: Configurable / better base friction?
-        circle.center += circle.phys.velocity;
+        newCircle.center += newCircle.phys.velocity*.9;
 
-        if(circle.center.y - circle.radius < -1) {
-            circle.center.y = -1 + circle.radius;
-            circle.phys.velocity.y *= -circle.phys.restitution;
+        if(newCircle.center.y < -1) {
+            newCircle.center.y = -1;
+            newCircle.phys.velocity.y *= -newCircle.phys.restitution;
         }
-        if(circle.center.y + circle.radius > 1) {
-            circle.center.y = 1 - circle.radius;
-            circle.phys.velocity.y *= -circle.phys.restitution;
+        if(newCircle.center.y > 1) {
+            newCircle.center.y = 1;
+            newCircle.phys.velocity.y *= -newCircle.phys.restitution;
         }
-        if(circle.center.x - circle.radius < -1) {
-            circle.center.x = -1 + circle.radius;
-            circle.phys.velocity.x *= -circle.phys.restitution;
+        if(newCircle.center.x < -1) {
+            newCircle.center.x = -1;
+            newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
-        if(circle.center.x + circle.radius > 1) {
-            circle.center.x = 1 - circle.radius;
-            circle.phys.velocity.x *= -circle.phys.restitution;
+        if(newCircle.center.x > 1) {
+            newCircle.center.x = 1;
+            newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
 
-        // turning off collision rendering for now
-        circle.overlaps = 0;
+        oldCircles[id] = *newCircle;
 }
 
 fn circleCollision(c1 : Circle, c2: Circle) -> Manifold {
