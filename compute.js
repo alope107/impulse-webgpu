@@ -134,28 +134,6 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
 
-
-        // Pretend there is a circle at the pointer if the pointer exits
-        // TODO: cleaup
-        // if(uniforms.pointerHeld > 0) {
-        //     let other = Circle(
-        //         vec4f(),
-        //         uniforms.pointerLoc,
-        //         0.01,//TODO: configurable
-        //         0u,
-        //         Phys(
-        //             0, 1, oldCircle.center - uniforms.pointerLoc
-        //         )
-        //     );
-
-        //     let normal = circleCollisionNormal(*oldCircle, other);
-        //     let collides = !all(normal == vec2f());
-        //     newCircle.overlaps |= select(0u, 1u, collides);
-        //     if(collides) { // TODO: branchless?
-        //         let j = calcJ(oldCircle.phys, other.phys, normal);
-        //         newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
-        //     }
-
         let pointerRadius=.05;
         if(uniforms.pointerHeld > 0) {
             let delta = newCircle.center - uniforms.pointerLoc;
@@ -165,7 +143,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             }
         }
 
-        newCircle.phys.velocity.y -= .0001;
+        //newCircle.phys.velocity.y -= .0001;
 
         let maxSpeed = .1;
         let speed = length(newCircle.phys.velocity);
@@ -201,6 +179,9 @@ fn circleCollision(c1 : Circle, c2: Circle) -> Manifold {
     let touchingDist = c1.radius + c2.radius;
     if(squaredDist < pow(touchingDist, 2)) {
         let dist = sqrt(squaredDist);
+        if(dist == 0.0) { // Avoid divide by 0
+            return Manifold(vec2(1, 0), c1.radius);
+        }
         let penetrationDepth = touchingDist - dist;
         return Manifold(delta/dist, penetrationDepth);
     }
