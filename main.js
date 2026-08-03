@@ -291,6 +291,18 @@ const main = async () => {
         moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
         moveCirclesPass.end();
 
+        moveCirclesPass = encoder.beginComputePass();
+        moveCirclesPass.setPipeline(moveCirclesPipeline);
+        moveCirclesPass.setBindGroup(0, pingToPong ? moveCirclesBindGroupPongToPing : moveCirclesBindGroupPingToPong);
+        moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
+        moveCirclesPass.end();
+
+        moveCirclesPass = encoder.beginComputePass();
+        moveCirclesPass.setPipeline(moveCirclesPipeline);
+        moveCirclesPass.setBindGroup(0, pingToPong ? moveCirclesBindGroupPingToPong : moveCirclesBindGroupPongToPing);
+        moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
+        moveCirclesPass.end();
+
         baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
         const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
         rectRenderPass.setPipeline(rectRenderPipeline);

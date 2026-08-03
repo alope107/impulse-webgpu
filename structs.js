@@ -163,11 +163,14 @@ export const circleStruct = (() => {
     // Eventually move to random density/restitution
     const randJSCircles =  (circleCount, minRadius, maxRadius, maxVelComp,  density, restitution) => {
         let circles = [];
+        const scale = .001;
+        const wall = 1/scale;
         for(let i = 0; i < circleCount; i++) {
-            const velocity = [randRange(-maxVelComp, maxVelComp), randRange(-maxVelComp, maxVelComp)];
+            const velocity = [randRange(-maxVelComp*wall, maxVelComp*wall), randRange(-maxVelComp*wall, maxVelComp*wall)];
             const radius = randRange(minRadius, maxRadius);
+
             circles.push({
-                center: [randClip(), randClip()],
+                center: [randRange(-wall, wall), randRange(-wall, wall)],//[randClip(), randClip()],
                 color: randSolidColor(),
                 radius,
                 phys: physStruct.create({

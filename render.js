@@ -34,6 +34,7 @@ const UNIT_CIRCLE_POINTS = ${unitCirclePointsWGSL(polysPerCircle)}
 
 @vertex fn drawCircle(@builtin(vertex_index) vertexIdx : u32, 
                     @builtin(instance_index) instanceIdx : u32) -> VertexOutput {
+    let scale = 0.001;
     _ = rects[0].topLeft;
     let circle = circles[instanceIdx];
     let r = select(0., circle.radius, (vertexIdx & 1) == 0); // Alternate between edges and center
@@ -43,7 +44,7 @@ const UNIT_CIRCLE_POINTS = ${unitCirclePointsWGSL(polysPerCircle)}
     let baseColor = select(vec4(), circle.color, (vertexIdx & 1) == 0);
 
     return VertexOutput(
-        vec4f(circle.center + offset, 0, 1.),
+        vec4f((circle.center + offset)* scale, 0, 1.),
         select(baseColor, vec4f(1, 0, 0, 1), circle.overlaps > 0)
     );
 }

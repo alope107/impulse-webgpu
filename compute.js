@@ -115,10 +115,14 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.overlaps |= select(0u, 1u, collides);
             if(collides) { // TODO: branchless?
                 let j = calcJ(oldCircle.phys, other.phys, normal);
-                newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
+                var force = -j * oldCircle.phys.invMass * normal;
+                if(length(force) > 1) {
+                    force /= length(force);
+                }
+                newCircle.phys.velocity += force;
 
-                let percent = 0.9;
-                let slop = 0.01;
+                let percent = 0.2;
+                let slop = 0.03;
 
                 // Allow a bit of penetration to avoid jitter
                 let depth = max(manifold.penetrationDepth - slop, 0.0);
@@ -134,41 +138,46 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
 
+        let scale = 0.001;
+        let wall = 1.0/scale;
+
         let pointerRadius=.05;
         if(uniforms.pointerHeld > 0) {
-            let delta = newCircle.center - uniforms.pointerLoc;
+            let delta = newCircle.center - (uniforms.pointerLoc*wall);
             let deltaLen = length(delta);
-            if(deltaLen < newCircle.radius+pointerRadius) {
-                newCircle.phys.velocity += delta/10;
+            if(deltaLen < newCircle.radius+(pointerRadius*wall)) {
+                newCircle.phys.velocity += delta/6;
             }
         }
 
-        //newCircle.phys.velocity.y -= .0001;
+        newCircle.phys.velocity.y -= .03;
 
-        let maxSpeed = .1;
+        let maxSpeed = 5.0;
         let speed = length(newCircle.phys.velocity);
-        if(speed > maxSpeed) {
-            newCircle.phys.velocity *= maxSpeed/speed;
-        }
+        // if(speed > maxSpeed) {
+        //     newCircle.phys.velocity *= maxSpeed/speed;
+        // }
+
+
 
         // TODO: Configurable / better base friction?
-        newCircle.center += newCircle.phys.velocity*.9;
+        newCircle.center += newCircle.phys.velocity;//*.9;
 
         newCircle.overlaps = 0;
-        if(newCircle.center.y < -1) {
-            newCircle.center.y = -1;
+        if(newCircle.center.y < -wall) {
+            newCircle.center.y = -wall;
             newCircle.phys.velocity.y *= -newCircle.phys.restitution;
         }
-        if(newCircle.center.y > 1) {
-            newCircle.center.y = 1;
+        if(newCircle.center.y > wall) {
+            newCircle.center.y = wall;
             newCircle.phys.velocity.y *= -newCircle.phys.restitution;
         }
-        if(newCircle.center.x < -1) {
-            newCircle.center.x = -1;
+        if(newCircle.center.x < -wall) {
+            newCircle.center.x = -wall;
             newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
-        if(newCircle.center.x > 1) {
-            newCircle.center.x = 1;
+        if(newCircle.center.x > wall) {
+            newCircle.center.x = wall;
             newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
 }
