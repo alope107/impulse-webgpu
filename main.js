@@ -279,24 +279,25 @@ const main = async () => {
     const render = async() => {
         const encoder = device.createCommandEncoder({label: "encoder"});
 
-        let moveRectsPass = encoder.beginComputePass();
-        moveRectsPass.setPipeline(moveRectsPipeline);
-        moveRectsPass.setBindGroup(0, pingToPong ? moveRectsBindGroupPingToPong : moveRectsBindGroupPongToPing);
-        moveRectsPass.dispatchWorkgroups(Math.ceil(rects.count/64), Math.ceil(rects.count/64), 1);
-        moveRectsPass.end();
+        // let moveRectsPass = encoder.beginComputePass();
+        // moveRectsPass.setPipeline(moveRectsPipeline);
+        // moveRectsPass.setBindGroup(0, pingToPong ? moveRectsBindGroupPingToPong : moveRectsBindGroupPongToPing);
+        // moveRectsPass.dispatchWorkgroups(Math.ceil(rects.count/64), Math.ceil(rects.count/64), 1);
+        // moveRectsPass.end();
 
         let moveCirclesPass = encoder.beginComputePass();
         moveCirclesPass.setPipeline(moveCirclesPipeline);
         moveCirclesPass.setBindGroup(0, pingToPong ? moveCirclesBindGroupPingToPong : moveCirclesBindGroupPongToPing);
-        moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
+        moveCirclesPass.dispatchWorkgroups(1);
+        //moveCirclesPass.dispatchWorkgroups(Math.ceil(circles.count/64), Math.ceil(circles.count/64), 1);
         moveCirclesPass.end();
 
-        baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
-        const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
-        rectRenderPass.setPipeline(rectRenderPipeline);
-        rectRenderPass.setBindGroup(0, pingToPong ? renderRectsBindGroupPong : renderRectsBindGroupPong);
-        rectRenderPass.draw(4, rects.count); // Rectangle needs 4 vertices
-        rectRenderPass.end();
+        // baseRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
+        // const rectRenderPass = encoder.beginRenderPass(baseRenderPassDescriptor);
+        // rectRenderPass.setPipeline(rectRenderPipeline);
+        // rectRenderPass.setBindGroup(0, pingToPong ? renderRectsBindGroupPong : renderRectsBindGroupPong);
+        // rectRenderPass.draw(4, rects.count); // Rectangle needs 4 vertices
+        // rectRenderPass.end();
 
         layeredRenderPassDescriptor.colorAttachments[0].view = ctx.getCurrentTexture().createView();
         const circleRenderPass = encoder.beginRenderPass(layeredRenderPassDescriptor);

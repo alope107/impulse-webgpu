@@ -85,13 +85,13 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
 }
 
 // TODO: better workgroup size UPDATE THE GLOBAL INDEX CALC IF CHANGED
-@compute @workgroup_size(8, 8, 1) fn moveCircles(
+@compute @workgroup_size(1, 1, 1) fn moveCircles(
     @builtin(workgroup_id) workgroup_id : vec3<u32>,
     @builtin(local_invocation_index) local_invocation_index: u32,
     @builtin(num_workgroups) num_workgroups: vec3<u32>) {
-        let id = global_invocation_index(workgroup_id, local_invocation_index, num_workgroups,
-                                         8*8*1 /* CHANGE ME WHEN WORKGROUP SIZE CHANGES */);
-        if(id >= arrayLength(&oldCircles)) { return; }
+        let threadId = global_invocation_index(workgroup_id, local_invocation_index, num_workgroups,
+                                         1*1*1 /* CHANGE ME WHEN WORKGROUP SIZE CHANGES */);
+        if(threadId >= 1) { return; } // CHANGE ME BACK
 
         // Just making sure we don't lose our bindings
         _ = oldCircles[0].radius;
@@ -99,6 +99,8 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         _ = oldRects[0].topLeft;
         _ = newRects[0].topLeft;
         _ = uniforms.pointerHeld;
+
+        for(var id = 0u; id < arrayLength(&oldCircles); id++) {
 
         let newCircle = &newCircles[id];
         let oldCircle = &oldCircles[id];
@@ -134,27 +136,6 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
 
-
-        // Pretend there is a circle at the pointer if the pointer exits
-        // TODO: cleaup
-        // if(uniforms.pointerHeld > 0) {
-        //     let other = Circle(
-        //         vec4f(),
-        //         uniforms.pointerLoc,
-        //         0.01,//TODO: configurable
-        //         0u,
-        //         Phys(
-        //             0, 1, oldCircle.center - uniforms.pointerLoc
-        //         )
-        //     );
-
-        //     let normal = circleCollisionNormal(*oldCircle, other);
-        //     let collides = !all(normal == vec2f());
-        //     newCircle.overlaps |= select(0u, 1u, collides);
-        //     if(collides) { // TODO: branchless?
-        //         let j = calcJ(oldCircle.phys, other.phys, normal);
-        //         newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
-        //     }
 
         let pointerRadius=.05;
         if(uniforms.pointerHeld > 0) {
@@ -193,6 +174,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.center.x = 1;
             newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
+    }
 }
 
 fn circleCollision(c1 : Circle, c2: Circle) -> Manifold {
