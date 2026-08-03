@@ -116,6 +116,16 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             if(collides) { // TODO: branchless?
                 let j = calcJ(oldCircle.phys, other.phys, normal);
                 newCircle.phys.velocity += -j * oldCircle.phys.invMass * normal;
+
+                let percent = 0.9;
+                let slop = 0.01;
+
+                // Allow a bit of penetration to avoid jitter
+                let depth = max(manifold.penetrationDepth - slop, 0.0);
+
+                let correction = (depth / (newCircle.phys.invMass + other.phys.invMass)) * percent * normal;
+                // Directly correct position - not going through velocity
+                newCircle.center -= newCircle.phys.invMass * correction;
             }
         }
 
@@ -155,7 +165,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             }
         }
 
-        // newCircle.phys.velocity.y -= .0001;
+        newCircle.phys.velocity.y -= .0001;
 
         let maxSpeed = .1;
         let speed = length(newCircle.phys.velocity);
@@ -166,7 +176,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         // TODO: Configurable / better base friction?
         newCircle.center += newCircle.phys.velocity*.9;
 
-        // newCircle.overlaps = 0;
+        newCircle.overlaps = 0;
         if(newCircle.center.y < -1) {
             newCircle.center.y = -1;
             newCircle.phys.velocity.y *= -newCircle.phys.restitution;
