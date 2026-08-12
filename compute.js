@@ -150,7 +150,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             }
         }
 
-        newCircle.phys.velocity.y -= .03;
+        // newCircle.phys.velocity.y -= .03;
 
         let maxSpeed = 5.0;
         let speed = length(newCircle.phys.velocity);
@@ -164,20 +164,20 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
         newCircle.center += newCircle.phys.velocity;//*.9;
 
         newCircle.overlaps = 0;
-        if(newCircle.center.y < -wall) {
-            newCircle.center.y = -wall;
+        if(newCircle.center.y < -wall + newCircle.radius) {
+            newCircle.center.y = -wall + newCircle.radius;
             newCircle.phys.velocity.y *= -newCircle.phys.restitution;
         }
-        if(newCircle.center.y > wall) {
-            newCircle.center.y = wall;
+        if(newCircle.center.y > wall - newCircle.radius) {
+            newCircle.center.y = wall - newCircle.radius;
             newCircle.phys.velocity.y *= -newCircle.phys.restitution;
         }
-        if(newCircle.center.x < -wall) {
-            newCircle.center.x = -wall;
+        if(newCircle.center.x < -wall + newCircle.radius) {
+            newCircle.center.x = -wall + newCircle.radius;
             newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
-        if(newCircle.center.x > wall) {
-            newCircle.center.x = wall;
+        if(newCircle.center.x > wall - newCircle.radius) {
+            newCircle.center.x = wall - newCircle.radius;
             newCircle.phys.velocity.x *= -newCircle.phys.restitution;
         }
 }
