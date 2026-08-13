@@ -198,10 +198,11 @@ export const uniformsStruct = (() => {
         struct Uniforms {
             pointerLoc: vec2f, // 8 bytes, location of pointer
             pointerPressed: u32, // 4 bytes, was the pointer first pressed this frame?
-            pointerHeld: u32 // 4 bytes, is the pointer currently held down?
-        } // total 16 bytes
+            pointerHeld: u32, // 4 bytes, is the pointer currently held down?
+            gravity: vec2f // 8 bytes, gravity vector
+        } // total 24 bytes
 `;
-    const byteCount = 16;
+    const byteCount = 24;
     const u32Count = byteCount/4;
     const floatCount = byteCount/4;
     const createEmpty = () => {
@@ -212,6 +213,7 @@ export const uniformsStruct = (() => {
                 pointerLocView: new Float32Array(data, 0),
                 pointerPressedView: new Uint32Array(data, 8),
                 pointerHeldView: new Uint32Array(data, 12),
+                gravityView: new Float32Array(data, 16)
             },
             count: 1
         };
@@ -222,11 +224,12 @@ export const uniformsStruct = (() => {
         u32Count,
         floatCount,
         createEmpty,
-        createFilled: ({pointerLoc, pointerPressed, pointerHeld}) => {
+        createFilled: ({pointerLoc, pointerPressed, pointerHeld, gravity}) => {
             const uniform = createEmpty();
             uniform.views.pointerLocView.set(pointerLoc, 0);
             uniform.views.pointerPressedView.set([pointerPressed], 0);
             uniform.views.pointerHeldView.set([pointerHeld], 0);
+            uniform.views.gravityView.set(gravity, 0);
             return uniform;
         }
     };

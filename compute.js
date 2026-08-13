@@ -150,7 +150,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             }
         }
 
-        // newCircle.phys.velocity.y -= .03;
+        newCircle.phys.velocity += uniforms.gravity;
 
         let maxSpeed = 5.0;
         let speed = length(newCircle.phys.velocity);

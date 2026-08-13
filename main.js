@@ -173,7 +173,8 @@ const main = async () => {
     let uniform = uniformsStruct.createFilled({
         pointerLoc: [0, 0],
         pointerHeld: 0,
-        pointerPressed: 0
+        pointerPressed: 0,
+        gravity: [c.gravX, c.gravY]
     });
     const uniformBuffer = device.createBuffer({
         label: "uniformBuffer",
@@ -325,10 +326,10 @@ const main = async () => {
 
     const animationFrame = async (timestamp) => {
         uniform = uniformsStruct.createFilled({
-            gravity: [0, 0],
             pointerLoc: pointerLoc,
             pointerHeld: pointerHeldNow,
-            pointerPressed: !pointerHeldLastFrame && pointerHeldNow 
+            pointerPressed: !pointerHeldLastFrame && pointerHeldNow,
+            gravity: [c.gravX, c.gravY],
         });
         pointerHeldLastFrame = pointerHeldNow;
         device.queue.writeBuffer(uniformBuffer, 0, uniform.data);

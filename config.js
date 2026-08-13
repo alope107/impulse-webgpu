@@ -10,7 +10,9 @@ const defaults = {
     maxRandVelComp: .01,
     density: 1,
     restitution: .5,
-    pointerRadius: .03 // NOT YET USED
+    pointerRadius: .03, // NOT YET USED
+    gravX: 0,
+    gravY: 0
 };
 
 // does not currently validate params!
