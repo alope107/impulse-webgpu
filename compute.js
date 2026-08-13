@@ -138,6 +138,7 @@ fn rectOverlaps(r1 : ptr<storage, Rect, read_write>, r2: ptr<storage, Rect, read
             newCircle.overlaps |= select(0u, 1u, rectCircleOverlaps(rect, oldCircle));
         }
 
+        // TODO: general walls
         let scale = 0.001;
         let wall = 1.0/scale;
 

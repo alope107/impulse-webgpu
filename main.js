@@ -1,3 +1,4 @@
+import buildCamera from "./camera.js";
 import { computeShaderCode } from "./compute.js";
 import { configFromQueryParams } from "./config.js";
 import { renderShaderCode } from "./render.js";
@@ -174,7 +175,9 @@ const main = async () => {
         pointerLoc: [0, 0],
         pointerHeld: 0,
         pointerPressed: 0,
-        gravity: [c.gravX, c.gravY]
+        gravity: [c.gravX, c.gravY],
+        wallCorner: [1000, -1000], // NOT YET USED, TODO
+        cameraMat: buildCamera([1, 1]) // NOT YET USED, TODO
     });
     const uniformBuffer = device.createBuffer({
         label: "uniformBuffer",
@@ -330,6 +333,8 @@ const main = async () => {
             pointerHeld: pointerHeldNow,
             pointerPressed: !pointerHeldLastFrame && pointerHeldNow,
             gravity: [c.gravX, c.gravY],
+            wallCorner: [1000, -1000], // NOT YET USED, TODO
+            cameraMat: buildCamera([1, 1])  // NOT YET USED, TODO
         });
         pointerHeldLastFrame = pointerHeldNow;
         device.queue.writeBuffer(uniformBuffer, 0, uniform.data);
