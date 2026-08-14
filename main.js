@@ -216,6 +216,7 @@ const main = async () => {
         entries: [
             {binding: 0, resource: rectBufferPing},
             {binding: 1, resource: circleBufferPing},
+            {binding: 2, resource: uniformBuffer},
         ]
     });
     const renderRectsBindGroupPong = device.createBindGroup({
@@ -224,6 +225,7 @@ const main = async () => {
         entries: [
             {binding: 0, resource: rectBufferPong},
             {binding: 1, resource: circleBufferPong},
+            {binding: 2, resource: uniformBuffer},
         ]
     });
 
@@ -255,6 +257,7 @@ const main = async () => {
         entries: [
             {binding: 0, resource: rectBufferPing},
             {binding: 1, resource: circleBufferPing},
+            {binding: 2, resource: uniformBuffer},
         ]
     });
     const renderCirclesBindGroupPong = device.createBindGroup({
@@ -263,6 +266,7 @@ const main = async () => {
         entries: [
             {binding: 0, resource: rectBufferPong},
             {binding: 1, resource: circleBufferPong},
+            {binding: 2, resource: uniformBuffer},
         ]
     });
 
@@ -334,7 +338,7 @@ const main = async () => {
             pointerPressed: !pointerHeldLastFrame && pointerHeldNow,
             gravity: [c.gravX, c.gravY],
             wallCorner: [1000, -1000], // NOT YET USED, TODO
-            cameraMat: buildCamera([1, 1])  // NOT YET USED, TODO
+            cameraMat: buildCamera([.001, .001]) 
         });
         pointerHeldLastFrame = pointerHeldNow;
         device.queue.writeBuffer(uniformBuffer, 0, uniform.data);

@@ -235,7 +235,12 @@ export const uniformsStruct = (() => {
             uniform.views.pointerHeldView.set([pointerHeld], 0);
             uniform.views.gravityView.set(gravity, 0);
             uniform.views.wallCornerView.set(wallCorner, 0);
-            uniform.views.cameraMatView.set(cameraMat.flat(), 0); // WRONG NEED INTERNAL PADDING
+            uniform.views.cameraMatView.set([...cameraMat[0], 0, // Adding mat3x3f internal padding
+                                             ...cameraMat[1], 0,
+                                             ...cameraMat[2], 0,
+                                            ], 
+
+                0); 
             return uniform;
         }
     };
