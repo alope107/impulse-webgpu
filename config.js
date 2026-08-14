@@ -12,7 +12,8 @@ const defaults = {
     restitution: .5,
     pointerRadius: .03, // NOT YET USED
     gravX: 0,
-    gravY: 0
+    gravY: 0,
+    baseScale: .001
 };
 
 // does not currently validate params!

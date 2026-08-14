@@ -1,13 +1,25 @@
 import buildCamera from "./camera.js";
 import { computeShaderCode } from "./compute.js";
 import { configFromQueryParams } from "./config.js";
+import KeyChecker from "./keyboard.js";
 import { renderShaderCode } from "./render.js";
 import { startResizeObservation } from "./resize.js";
 import { rectStruct, circleStruct, uniformsStruct } from "./structs.js";
 
+const zoomInKey = 'e';
+const zoomOutKey = 'q';
+const leftKey = 'a';
+const rightKey = 'd';
+const upKey = 'w';
+const downKey = 's';
+
 let pointerLoc = [0, 0];
 let pointerHeldNow = false;
 let pointerHeldLastFrame = false;
+
+
+let scale;
+let trans = [0, 0];
 
 const main = async () => {
 
@@ -24,6 +36,16 @@ const main = async () => {
     }
 
     const c = configFromQueryParams();
+    scale = c.baseScale;
+
+    const keys = new KeyChecker([
+        zoomInKey,
+        zoomOutKey,
+        leftKey,
+        rightKey,
+        upKey,
+        downKey
+    ]);
 
     const renderTarget = document.body.appendChild(document.createElement("canvas"));
     renderTarget.id = "renderTarget";
@@ -171,17 +193,9 @@ const main = async () => {
     device.queue.writeBuffer(circleBufferPong, 0, circles.data);
 
 
-    let uniform = uniformsStruct.createFilled({
-        pointerLoc: [0, 0],
-        pointerHeld: 0,
-        pointerPressed: 0,
-        gravity: [c.gravX, c.gravY],
-        wallCorner: [1000, -1000], // NOT YET USED, TODO
-        cameraMat: buildCamera([1, 1]) // NOT YET USED, TODO
-    });
     const uniformBuffer = device.createBuffer({
         label: "uniformBuffer",
-        size: uniform.data.byteLength,
+        size: uniformsStruct.byteCount,
         usage: GPUBufferUsage.UNIFORM | 
                GPUBufferUsage.COPY_DST 
     });
@@ -332,15 +346,27 @@ const main = async () => {
     };
 
     const animationFrame = async (timestamp) => {
-        uniform = uniformsStruct.createFilled({
+        // TODO: move magic # to config
+        if(keys.get(zoomInKey).held) scale *= 1.1;
+        if(keys.get(zoomOutKey).held) scale *= .9;
+        // TODO: Move magic # to config and maybe scale it with scale?
+        const transSpeed = 10;
+        if(keys.get(leftKey).held) trans[0] += transSpeed;
+        if(keys.get(rightKey).held) trans[0] -= transSpeed;
+        if(keys.get(upKey).held) trans[1] -= transSpeed;
+        if(keys.get(downKey).held) trans[1] += transSpeed;
+
+        const camera = buildCamera(trans, [scale, scale]);
+        const uniform = uniformsStruct.createFilled({
             pointerLoc: pointerLoc,
             pointerHeld: pointerHeldNow,
             pointerPressed: !pointerHeldLastFrame && pointerHeldNow,
             gravity: [c.gravX, c.gravY],
             wallCorner: [1000, -1000], // NOT YET USED, TODO
-            cameraMat: buildCamera([.001, .001]) 
+            cameraMat: camera
         });
         pointerHeldLastFrame = pointerHeldNow;
+        keys.tick();
         device.queue.writeBuffer(uniformBuffer, 0, uniform.data);
         render();
         requestAnimationFrame(animationFrame);

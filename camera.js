@@ -1,9 +1,9 @@
-// TODO: rotate, translate
-const buildCamera = ([scaleX, scaleY]) => {
+// Translates, then scales, 
+const buildCamera = ([transX, transY], [scaleX, scaleY]) => {
     return [
         [scaleX, 0,      0],
         [0,      scaleY, 0],
-        [0,      0,      1]
+        [scaleX*transX, scaleY*transY, 1]
     ];
 };
 

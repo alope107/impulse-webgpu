@@ -46,7 +46,7 @@ const UNIT_CIRCLE_POINTS = ${unitCirclePointsWGSL(polysPerCircle)}
 
     let baseColor = select(vec4(), circle.color, (vertexIdx & 1) == 0);
 
-    let transformedPosition = vec3(circle.center+offset, 0) * uniforms.cameraMat;
+    let transformedPosition =  uniforms.cameraMat * vec3(circle.center+offset, 1);
 
     return VertexOutput(
         vec4f(transformedPosition, 1.),
